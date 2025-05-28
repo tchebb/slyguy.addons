@@ -80,21 +80,22 @@ class API(object):
         self.logout()
 
         payload = {
-           # 'operationName': 'registerDevice',
+            #'operationName': 'registerDevice',
             'variables': {
                 'registerDevice': {
                     'applicationRuntime': 'android',
                     'attributes': {
                         'osDeviceIds': [],
-                        'manufacturer': 'Nvidia',
-                        'model': 'Shield',
+                        'manufacturer': 'NVIDIA',
+                        'model': 'SHIELD Android TV',
                         'operatingSystem': 'Android',
                         'operatingSystemVersion': '11',
-                        'brand': 'Nvidia'
+                        'brand': 'NVIDIA'
                     },
                     'deviceFamily': 'android',
                     'deviceLanguage': 'en',
                     'deviceProfile': 'tv',
+                    'devicePlatformId': 'android-tv',
                 }
             },
             'query': queries.REGISTER_DEVICE,
