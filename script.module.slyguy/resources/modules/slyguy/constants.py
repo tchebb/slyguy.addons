@@ -145,6 +145,7 @@ EMPTY_TS = 'empty.ts' if KODI_VERSION < 19 else ''
 #################
 
 CHUNK_SIZE = 64 * 1024
+INVALID_IPS = ['0.0.0.0', '::']
 LIVE_HEAD = 25*60*60
 NEWS_MAX_TIME = 432000 #5 Days
 MAX_SEARCH_HISTORY = 10
