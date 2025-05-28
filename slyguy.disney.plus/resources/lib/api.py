@@ -80,12 +80,17 @@ class API(object):
         self.logout()
 
         payload = {
+           # 'operationName': 'registerDevice',
             'variables': {
                 'registerDevice': {
                     'applicationRuntime': 'android',
                     'attributes': {
+                        'osDeviceIds': [],
+                        'manufacturer': 'Nvidia',
+                        'model': 'Shield',
                         'operatingSystem': 'Android',
-                        'operatingSystemVersion': '8.1.0',
+                        'operatingSystemVersion': '11',
+                        'brand': 'Nvidia'
                     },
                     'deviceFamily': 'android',
                     'deviceLanguage': 'en',
