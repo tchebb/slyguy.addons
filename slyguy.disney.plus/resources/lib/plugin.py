@@ -88,11 +88,7 @@ def _deeplink_page(ref_id):
 @plugin.route()
 @plugin.pagination()
 def brands(page=1, **kwargs):
-    data = api.deeplink(ref_id='home')
-    page_id = _get_actions(data)[BROWSE]['pageId']
-    data = api.page(page_id, limit=0, enhanced_limit=0)
-    set_id = [x for x in data['containers'] if 'brand' in x['style']['name'].lower()][0]['id']
-    data = api.set(set_id, page=page)
+    data = api.set(BRANDS_ID, page=page)
     folder = _process_rows(data)
     return folder, data['pagination']['hasMore']
 
@@ -100,11 +96,7 @@ def brands(page=1, **kwargs):
 @plugin.route()
 @plugin.pagination()
 def continue_watching(page=1, **kwargs):
-    data = api.deeplink(ref_id='home')
-    page_id = _get_actions(data)[BROWSE]['pageId']
-    data = api.page(page_id, limit=0, enhanced_limit=0)
-    set_id = [x for x in data['containers'] if 'continue_watching' in x['style']['name'].lower()][0]['id']
-    data = api.set(set_id, page=page, _skip_cache=True)
+    data = api.set(CONTINUE_WATCHING_ID, page=page, _skip_cache=True)
     folder = _process_rows(data, title=_.CONTINUE_WATCHING, continue_watching=True)
     return folder, data['pagination']['hasMore']
 
