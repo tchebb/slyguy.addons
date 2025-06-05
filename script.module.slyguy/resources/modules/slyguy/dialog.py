@@ -99,14 +99,14 @@ class QRCodeDialog(xbmcgui.WindowDialog):
     def __init__(self, qr_data, size):
         super(QRCodeDialog, self).__init__()
 
-        if KODI_VERSION > 18:
-            import qrcode
-            self.filepath = 'special://temp/qr_{}.png'.format(hash_6(qr_data))
-            qr_image = qrcode.make(qr_data)
-            with open(xbmc.translatePath(self.filepath), 'wb') as f:
-                qr_image.save(f, 'PNG')
-        else:
-            self.filepath = 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(qr_data, size, size)
+        # if KODI_VERSION > 18:
+        #     import qrcode
+        #     self.filepath = 'special://temp/qr_{}.png'.format(hash_6(qr_data))
+        #     qr_image = qrcode.make(qr_data)
+        #     with open(xbmc.translatePath(self.filepath), 'wb') as f:
+        #         qr_image.save(f, 'PNG')
+        # else:
+        self.filepath = 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(qr_data, size, size)
 
         self.addControl(xbmcgui.ControlImage(0, 200, size, size, self.filepath))
 
