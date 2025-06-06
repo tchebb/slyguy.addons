@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from kodi_six import xbmcgui, xbmc, xbmcvfs
 
 from slyguy import _
-from slyguy.util import get_system_arch, hash_6
+from slyguy.util import get_system_arch
 from slyguy.constants import *
 
 
@@ -96,19 +96,10 @@ def progressbg(message='', heading=None, percent=0):
 
 
 class QRCodeDialog(xbmcgui.WindowDialog):
-    def __init__(self, qr_data, size):
+    def __init__(self, qr_data, size=324):
         super(QRCodeDialog, self).__init__()
-
-        # if KODI_VERSION > 18:
-        #     import qrcode
-        #     self.filepath = 'special://temp/qr_{}.png'.format(hash_6(qr_data))
-        #     qr_image = qrcode.make(qr_data)
-        #     with open(xbmc.translatePath(self.filepath), 'wb') as f:
-        #         qr_image.save(f, 'PNG')
-        # else:
         self.filepath = 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(qr_data, size, size)
-
-        self.addControl(xbmcgui.ControlImage(0, 200, size, size, self.filepath))
+        self.addControl(xbmcgui.ControlImage(5, 200, size, size, self.filepath))
 
     def close(self):
         super(QRCodeDialog, self).close()
