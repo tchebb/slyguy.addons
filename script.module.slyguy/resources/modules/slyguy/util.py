@@ -41,15 +41,20 @@ def run_plugin(path, wait=False):
         xbmc.executebuiltin('RunPlugin({})'.format(path))
         return [], []
 
+
 def fix_url(url):
     parse = urlparse(url)
-    parse = parse._replace(path=re.sub('/{2,}','/',parse.path))
-    return urlunparse(parse)
+    if not parse.path.lower().startswith(('/https://', '/http://')):
+        parse = parse._replace(path=re.sub('/{2,}','/',parse.path))
+    url = urlunparse(parse)
+    return url
+
 
 def add_url_args(url, params=None):
     req = PreparedRequest()
     req.prepare_url(url, params)
     return req.url
+
 
 def check_port(port=0, default=False):
     try:
@@ -59,6 +64,7 @@ def check_port(port=0, default=False):
             return s.getsockname()[1]
     except:
         return default
+
 
 def kodi_db(name):
     options = []
