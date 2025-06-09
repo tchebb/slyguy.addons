@@ -271,7 +271,7 @@ def _error(e):
     mem_cache.empty()
     _close()
 
-    log.debug(e, exc_info=True)
+    log.error(e, exc_info=True)
     gui.ok(e.message, heading=e.heading)
     resolve()
 
