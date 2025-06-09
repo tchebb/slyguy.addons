@@ -8,7 +8,9 @@ TYPE_IPTV_MERGE = 1
 TYPE_IPTV_MANAGER = 2
 TYPE_INTEGRATION = 3
 
-DEFAULT_USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+#DEFAULT_USERAGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+# %20N Windows NT causes ffmpeg direct to crash (https://github.com/xbmc/inputstream.ffmpegdirect/issues/229)
+DEFAULT_USERAGENT = 'otg/1.5.1 (AppleTv Apple TV 4; tvOS16.0; appletv.client) libcurl/7.58.0 OpenSSL/1.0.2o zlib/1.2.11 clib/1.8.56'
 
 INTEGRATIONS = {
     'plugin.video.jiotv': {
