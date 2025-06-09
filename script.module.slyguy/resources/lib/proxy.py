@@ -1148,7 +1148,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if video_range == 'PQ':
                     codecs.append('hdr')
 
-                stream_data = {'bandwidth': bandwidth, 'width': width, 'height': height, 'frame_rate': frame_rate, 'codecs': codecs, 'url': url, 'full_url': line, 'index': len(video), 'res_ok': True, 'compatible': True}
+                stream_data = {'bandwidth': bandwidth, 'width': width, 'height': height, 'frame_rate': frame_rate, 'codecs': codecs, 'url': url, 'full_url': line, 'index': len(video), 'res_ok': True, 'compatible': True, 'inf': stream_inf}
                 if stream_data['bandwidth'] > max_bandwidth*1000000:
                     stream_data['res_ok'] = False
 
@@ -1186,9 +1186,11 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             adjust = 0
             for stream in all_streams:
-                if stream['full_url'] != selected['full_url']:
+                # may have backup streams with same meta, keep them!
+                if stream['inf'] != selected['inf']:
                     video.pop(stream['index']-adjust)
                     adjust += 1
+
         elif any(x['compatible'] and x['res_ok'] for x in all_streams):
             # skip quality, remove non-ok streams
             adjust = 0
