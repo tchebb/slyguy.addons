@@ -65,7 +65,7 @@ def play_yt_dlp(video_id):
     ydl_opts = {
         'format': 'best/bestvideo+bestaudio',
         'check_formats': False,
-        'quiet': True,
+       # 'quiet': True,
         'cachedir': ADDON_PROFILE,
        # 'no_warnings': True,
     }
