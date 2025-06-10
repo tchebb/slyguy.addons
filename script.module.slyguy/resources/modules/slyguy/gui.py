@@ -354,6 +354,7 @@ class Item(object):
             if headers:
                 li.setProperty('{}.stream_headers'.format(self.inputstream.addon_id), headers)
                 li.setProperty('{}.manifest_headers'.format(self.inputstream.addon_id), headers)
+                li.setProperty('{}.common_headers'.format(self.inputstream.addon_id), headers)
 
             # IA does not support HLS original language attribute (only dash) so need to use property
             if self.proxy_data.get('original_language'):
