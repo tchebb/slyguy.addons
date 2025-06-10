@@ -1083,7 +1083,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         max_height = self._session.get('max_height') or float('inf')
 
         stream_inf = None
-        streams, all_streams, urls, metas = [], [], [], []
+        streams = []
         audios = []
         subs = []
         video = []
@@ -1130,7 +1130,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                 resolution = _remove_quotes(attribs.get('RESOLUTION', ''))
                 frame_rate = _remove_quotes(attribs.get('FRAME-RATE', ''))
                 video_range = _remove_quotes(attribs.get('VIDEO-RANGE', ''))
-
                 audio_group = _remove_quotes(attribs.get('AUDIO', ''))
                 audio_groups[audio_group] = codecs
 
@@ -1141,14 +1140,13 @@ class RequestHandler(BaseHTTPRequestHandler):
                 except:
                     width = height = 0
 
-                url = line
-                if '://' in url:
-                    url = '/'+'/'.join(url.lower().split('://')[1].split('/')[1:])
-
                 if video_range == 'PQ':
                     codecs.append('hdr')
 
-                stream_data = {'bandwidth': bandwidth, 'width': width, 'height': height, 'frame_rate': frame_rate, 'codecs': codecs, 'url': url, 'full_url': line, 'index': len(video), 'res_ok': True, 'compatible': True, 'inf': stream_inf}
+                key = '{}{}{}{}'.format(attribs.get('CODECS', ''), attribs.get('BANDWIDTH', ''), attribs.get('RESOLUTION', ''), attribs.get('FRAME-RATE', '')).strip()
+                if not key:
+                    key = line # full url
+                stream_data = {'bandwidth': bandwidth, 'width': width, 'height': height, 'frame_rate': frame_rate, 'codecs': codecs, 'key': key, 'full_url': line, 'index': len(video), 'res_ok': True, 'compatible': True}
                 if stream_data['bandwidth'] > max_bandwidth*1000000:
                     stream_data['res_ok'] = False
 
@@ -1167,34 +1165,34 @@ class RequestHandler(BaseHTTPRequestHandler):
                 if not h265_enabled and codec_string == H265:
                     stream_data['compatible'] = False
 
-                if stream_data['url'] not in urls and stream_inf not in metas:
-                    streams.append(stream_data)
-                    urls.append(stream_data['url'])
-                    metas.append(stream_inf)
-
-                all_streams.append(stream_data)
+                streams.append(stream_data)
                 video.append([attribs, line])
                 stream_inf = None
             else:
                 new_lines.append(line)
 
+        unique_streams = {}
+        for stream in streams:
+            if stream['key'] not in unique_streams:
+                unique_streams[stream['key']] = stream
+
         # select quality
-        selected = self._quality_select(streams)
+        selected = self._quality_select(list(unique_streams.values()))
         if selected:
             if self._session.get('custom_quality'):
                 raise Redirect(selected['full_url'])
 
             adjust = 0
-            for stream in all_streams:
+            for stream in streams:
                 # may have backup streams with same meta, keep them!
-                if stream['inf'] != selected['inf']:
+                if stream['key'] != selected['key']:
                     video.pop(stream['index']-adjust)
                     adjust += 1
 
-        elif any(x['compatible'] and x['res_ok'] for x in all_streams):
+        elif any(x['compatible'] and x['res_ok'] for x in streams):
             # skip quality, remove non-ok streams
             adjust = 0
-            for stream in all_streams:
+            for stream in streams:
                 if not stream['compatible'] or not stream['res_ok']:
                     video.pop(stream['index']-adjust)
                     adjust += 1
