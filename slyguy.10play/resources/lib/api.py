@@ -138,9 +138,11 @@ class API(object):
             else:
                 return url
 
-        new_url = url.replace(',150,',',300,150,')
-        if self._session.head(new_url).ok:
-            return new_url
+        # try 1080 and 720
+        for replace in (',500,300,150,', ',300,150,'):
+            new_url = url.replace(',150,', replace)
+            if new_url != url and self._session.head(new_url).ok:
+                return new_url
 
         return url
 
