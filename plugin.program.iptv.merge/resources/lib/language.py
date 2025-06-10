@@ -103,6 +103,7 @@ class Language(BaseLanguage):
     MERGE_HOUR             = 30099
     IGNORE_PLAYLIST_EPGS   = 30100
     GZ_EPG                 = 30101
+    DEFAULT_USER_AGENT     = 30102
 
 
 _ = Language()

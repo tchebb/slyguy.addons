@@ -52,7 +52,7 @@ def play_channel(slug, **kwargs):
         headers = {
             'seekable': '0',
             'referer': '%20',
-            'user-agent': DEFAULT_USERAGENT,
+            'user-agent': settings.DEFAULT_USER_AGENT.value.strip(),
         }
     else:
         headers = {}

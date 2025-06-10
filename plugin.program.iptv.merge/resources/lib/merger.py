@@ -139,6 +139,10 @@ class XMLParser(object):
 
 
 def check_merge_required():
+    # dont allow auto merge more than every 5mins
+    if time.time() - userdata.get('last_run', 0) < 300:
+        return False
+
     output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
     playlist_path = os.path.join(output_dir, PLAYLIST_FILE_NAME)
     epg_path = os.path.join(output_dir, epg_file_name())

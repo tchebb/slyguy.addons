@@ -3,6 +3,7 @@ from slyguy.settings import CommonSettings, is_donor
 from slyguy.settings.types import Bool, Text, Browse, Number, Action
 
 from .language import _
+from .constants import DEFAULT_USERAGENT
 
 
 class Settings(CommonSettings):
@@ -25,6 +26,7 @@ class Settings(CommonSettings):
     PAGE_SIZE = Number('page_size', _.PAGE_SIZE, default=200)
     ASK_TO_ADD = Bool('ask_to_add', _.ASK_TO_ADD, default=False)
     IPTV_MERGE_PROXY = Bool('iptv_merge_proxy', _.IPTV_MERGE_PROXY, default=True)
+    DEFAULT_USER_AGENT = Text('user_agent', _.DEFAULT_USER_AGENT, default=DEFAULT_USERAGENT, parent=IPTV_MERGE_PROXY)
 
 
 settings = Settings()
