@@ -77,7 +77,7 @@ class Setting(object):
 
     def __init__(self, id, label=None, owner=ADDON_ID, default=USE_DEFAULT, visible=True, enable=True, disabled_value=USE_DEFAULT, disabled_reason=None, 
                  override=True, before_save=lambda _: True, default_label=None, inherit=None, category=None, value_str='{value}',
-                 confirm_clear=False, after_clear=lambda: True, legacy_ids=None, after_save=lambda _: True, description=None, private_value=False, order=None, parent=None):
+                 confirm_clear=False, after_clear=lambda: True, legacy_ids=None, after_save=lambda _: True, description=None, private_value=False, order=None, parent=None, image=None):
         self._id = str(id)
         self._label = label
         self._owner = owner
@@ -101,6 +101,7 @@ class Setting(object):
         self._after_clear = after_clear
         self._legacy_ids = legacy_ids or []
         self._description = description
+        self._image = image
         self._order = order if order is not None else Setting.ORDER
         Setting.ORDER += 1
         if not category:
@@ -123,6 +124,10 @@ class Setting(object):
         ids = [self.id.lower(), '_{}'.format(self.id.lower())]
         ids.extend([x.lower() for x in self._legacy_ids])
         return id.lower() in ids
+
+    @property
+    def image(self):
+        return self._image
 
     @property
     def is_default(self):

@@ -401,14 +401,15 @@ def _settings(category=0, **kwargs):
             label = setting.label,
             path = url_for(setting_select, id=setting.id),
             bookmark = False,
+            art = {'thumb': setting.image},
             context = ((_.RESET_TO_DEFAULT, 'RunPlugin({})'.format(url_for(setting_clear, id=setting.id))),) if setting.can_clear() else None,
-            is_folder = False,            
+            is_folder = False,
         )
 
         if setting.description:
             item.info['plot'] = setting.description
             item.context.append((_.HELP, 'RunPlugin({})'.format(url_for(setting_help, id=setting.id))))
-        
+
         folder.add_items([item])
 
     if any(setting.can_bulk_clear() for setting in category.settings):
@@ -938,7 +939,7 @@ def process_support():
         return
 
     settings.LAST_SUPPORT_REMINDER.value = _time
-    gui.ok(_.SHOW_SUPPORT)
+    gui.ok(_.SHOW_SUPPORT, qr=SUPPORT_URL)
 
 
 def process_news():

@@ -841,7 +841,7 @@ msgid "IPv4/IPv6 Preference"
 msgstr ""
 
 msgctxt "#32161"
-msgid "Visit [B]donate.slyguy.uk[/B] to become a supporter and then enter your Supporter ID here"
+msgid "Visit [B]donate.slyguy.uk[/B] or scan QR to become a supporter and then enter your Supporter ID here"
 msgstr ""
 
 msgctxt "#32162"
@@ -1102,7 +1102,7 @@ msgid "SlyGuy Proxy Listen Port"
 msgstr ""
 
 msgctxt "#32224"
-msgid "If you enjoy SlyGuy addons - please consider donating to unlock some extra perks!\n\n[B]https://donate.slyguy.uk[/B]"
+msgid "If you enjoy SlyGuy addons - please consider donating to unlock some extra perks!\n\nVisit [B]https://donate.slyguy.uk[/B] or scan the QR code"
 msgstr ""
 
 msgctxt "#32225"

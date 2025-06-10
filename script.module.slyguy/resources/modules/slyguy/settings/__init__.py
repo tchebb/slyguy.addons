@@ -8,7 +8,7 @@ from slyguy import dialog, signals
 from slyguy.language import _
 from slyguy.log import log
 from slyguy.constants import *
-from slyguy.util import get_kodi_string, set_kodi_string, kodi_rpc
+from slyguy.util import get_kodi_string, set_kodi_string, kodi_rpc, get_qr_img
 
 from .types import BaseSettings, Bool, Dict, Number, Text, Enum, Categories, Action, STORAGE
 
@@ -320,7 +320,7 @@ class CommonSettings(BaseSettings):
     PROXY_PORT = Number('proxy_port', default=None, default_label=_.AUTO, override=False, visible=lambda: settings.PROXY_ENABLED.value, owner=COMMON_ADDON_ID, after_save=lambda val: restart_service(), after_clear=restart_service, category=Categories.SYSTEM)
 
     # ROOT
-    DONOR_ID = Donor('donor_id', override=False, confirm_clear=True, owner=COMMON_ADDON_ID, category=Categories.ROOT)
+    DONOR_ID = Donor('donor_id', override=False, confirm_clear=True, owner=COMMON_ADDON_ID, category=Categories.ROOT, image=get_qr_img(SUPPORT_URL))
     UPDATE_ADDONS = Action("RunPlugin(plugin://{}/?_=update_addons)".format(COMMON_ADDON_ID), enable=is_donor, disabled_reason=_.SUPPORTER_ONLY, owner=COMMON_ADDON_ID, category=Categories.ROOT)
     RESET_ADDON = Action(reset_addon, owner=COMMON_ADDON_ID, category=Categories.ROOT)
 
