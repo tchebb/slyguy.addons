@@ -11,6 +11,8 @@ MENU = 9000
 MOVIELABELS = ["genre", "country", "year", "top250", "setid", "rating", "userrating", "playcount", "director", "mpaa", "plot", "plotoutline", "title", "originaltitle", "sorttitle",
                "runtime", "studio", "tagline", "writer", "premiered", "set", "imdbnumber", "lastplayed", "votes", "trailer", "dateadded", "streamdetails", "art", "file", "resume"]
 
+MOVIESETLABELS = ["title","art"]
+
 TVSHOWLABELS = ["genre", "year", "episode", "season", "rating", "userrating", "playcount", "mpaa", "plot", "title", "originaltitle", "sorttitle", "runtime", "studio", "premiered",
                 "imdbnumber", "lastplayed", "votes", "dateadded", "art", "watchedepisodes", "file"]
 
@@ -32,6 +34,17 @@ ACTORLABELS = ["cast"]
 
 DIRECTORLABELS = ["director"]
 
+
+def search_sets(query, data):
+    new_sets = []
+    for row in data['result']['sets']:
+        if query.lower() in row['title'].lower():
+            new_sets.append(row)
+    data['result']['sets'] = new_sets
+    data['result']['limits'] = {'end': len(new_sets), 'start': 0, 'total': len(new_sets)}
+    return data
+
+
 CATEGORIES = {
               'movies':{
                         'order':1,
@@ -48,8 +61,23 @@ CATEGORIES = {
                         'menuthumb':'globalsearch-icon-movies.png',
                         'media':'video'
                        },
-              'tvshows':{
+              'moviesets':{
                          'order':2,
+                         'enabled':False,
+                         'type':'sets',
+                         'content':'sets',
+                         'method':'VideoLibrary.GetMovieSets',
+                         'properties':MOVIESETLABELS,
+                         'sort':'title',
+                         'rule':search_sets,
+                         'streamdetails':False,
+                         'label':20434,
+                         'icon':'DefaultVideo.png',
+                         'menuthumb':'globalsearch-icon-sets.png',
+                         'media':'video'
+                        },
+              'tvshows':{
+                         'order':3,
                          'enabled':False,
                          'type':'tvshows',
                          'content':'tvshows',
@@ -64,7 +92,7 @@ CATEGORIES = {
                          'media':'video'
                         },
               'episodes':{
-                          'order':3,
+                          'order':4,
                           'enabled':False,
                           'type':'episodes',
                           'content':'episodes',
@@ -79,7 +107,7 @@ CATEGORIES = {
                           'media':'video'
                          },
               'musicvideos':{
-                             'order':4,
+                             'order':5,
                              'enabled':False,
                              'type':'musicvideos',
                              'content':'musicvideos',
@@ -94,7 +122,7 @@ CATEGORIES = {
                              'media':'video'
                             },
               'artists':{
-                         'order':5,
+                         'order':6,
                          'enabled':False,
                          'type':'artists',
                          'content':'artists',
@@ -109,7 +137,7 @@ CATEGORIES = {
                          'media':'music'
                         },
               'albums':{
-                        'order':6,
+                        'order':7,
                         'enabled':False,
                         'type':'albums',
                         'content':'albums',
@@ -124,7 +152,7 @@ CATEGORIES = {
                         'media':'music'
                        },
               'songs':{
-                       'order':7,
+                       'order':8,
                        'enabled':False,
                        'type':'songs',
                        'content':'songs',

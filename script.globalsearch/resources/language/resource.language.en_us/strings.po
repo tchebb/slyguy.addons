@@ -50,7 +50,7 @@ msgstr "Search Artists"
 
 msgctxt "#32006"
 msgid "Search Albums"
-msgstr "Search Abums"
+msgstr "Search Albums"
 
 msgctxt "#32007"
 msgid "Search Songs"
@@ -59,7 +59,7 @@ msgstr "Search Songs"
 # empty string with id 32008
 msgctxt "#32009"
 msgid "Search Live TV"
-msgstr "Search EPG"
+msgstr "Search Live TV"
 
 # empty string with id 32010
 msgctxt "#32011"

@@ -19,6 +19,7 @@ class Settings(CommonSettings):
     SEARCH_TAGS = Bool('search_tags', _.SEARCH_TAGS, default=False)
 
     SEARCH_MOVIES = Bool('movies', _.SEARCH_MOVIES, default=True)
+    SEARCH_MOVIE_SETS = Bool('moviesets', _.SEARCH_MOVIE_SETS, default=True)
     SEARCH_TV_SHOWS = Bool('tvshows', _.SEARCH_TV_SHOWS, default=True)
     SEARCH_EPISODES = Bool('episodes', _.SEARCH_EPISODES, default=False)
     SEARCH_ACTORS = Bool('actors', _.SEARCH_ACTORS, default=False)

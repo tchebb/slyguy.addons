@@ -1,5 +1,6 @@
 import json
 import operator
+import re
 from difflib import SequenceMatcher
 
 from kodi_six import xbmc, xbmcgui
@@ -112,7 +113,9 @@ class GUI(xbmcgui.WindowXML):
 
     @cached(60*5)
     def _cached_json_rpc(self, command):
-        return json.loads(xbmc.executeJSONRPC(command))
+        log.debug('JSON RPC: {}'.format(command))
+        result = json.loads(xbmc.executeJSONRPC(command))
+        return result
 
     def _get_rule(self, rule):
         _rules = []
@@ -131,13 +134,17 @@ class GUI(xbmcgui.WindowXML):
         if cat['type'] == 'seasonepisodes':
             search = search[0], search[1]
             rule = self._get_rule(cat['rule']).format(query0 = search[0], query1 = search[1])
+        elif callable(cat['rule']):
+            rule = ''
         else:
             rule = self._get_rule(cat['rule']).format(query = search)
         self.getControl(SEARCHCATEGORY).setLabel(xbmc.getLocalizedString(cat['label']))
         self.getControl(SEARCHCATEGORY).setVisible(True)
 
         #TODO: Pagination for faster more responsive results
-        json_response = self._cached_json_rpc('{"jsonrpc":"2.0", "method":"%s", "params":{"properties":%s, "sort":{"method":"%s"}, %s}, "id": 1}' % (cat['method'], json.dumps(cat['properties']), cat['sort'], rule))
+        json_response = self._cached_json_rpc('{"jsonrpc":"2.0", "method":"%s", "params":{"properties":%s, "sort":{"method":"%s"}%s}, "id": 1}' % (cat['method'], json.dumps(cat['properties']), cat['sort'], ', '+rule if rule else ''))
+        if callable(cat['rule']):
+            json_response = cat['rule'](search, json_response)
         listitems = []
         actors = {}
         directors = {}
@@ -214,6 +221,9 @@ class GUI(xbmcgui.WindowXML):
                     listitem.setProperty('albumid', str(item['albumid']))
                 if (cat['content'] == 'movies' and cat['type'] != 'actors' and cat['type'] != 'directors') or (cat['content'] == 'tvshows' and cat['type'] != 'tvactors') or cat['content'] == 'episodes' or cat['content'] == 'musicvideos' or cat['content'] == 'songs':
                     listitem.setPath(item['file'])
+                if cat['content'] == 'sets':
+                    listitem.setProperty('setid', str(item['setid']))
+                    listitem.setIsFolder(True)
                 if cat['media']:
                     listitem.setInfo(cat['media'], self._get_info(item, cat['content'][0:-1]))
                     listitem.setProperty('media', cat['media'])
@@ -572,10 +582,13 @@ class GUI(xbmcgui.WindowXML):
             functions += ('info',)
         if listitem.getProperty('type') != 'livetv':
             if listitem.getProperty('content') in ('movies', 'episodes', 'musicvideos', 'songs'):
-                path = listitem. getPath()
+                path = listitem.getPath()
             elif listitem.getProperty('content') == 'tvshows':
                 dbid = listitem.getVideoInfoTag().getDbId()
                 path = "videodb://tvshows/titles/%s/" % dbid
+            elif listitem.getProperty('content') == 'sets':
+                setid = listitem.getProperty('setid')
+                path = 'videodb://movies/sets/{0}/?setid={0}'.format(setid)
             elif listitem.getProperty('content') == 'seasons':
                 dbid = listitem.getVideoInfoTag().getSeason()
                 tvshowid = listitem.getProperty('tvshowid')
@@ -683,6 +696,10 @@ class GUI(xbmcgui.WindowXML):
             elif media == 'tvshow':
                 dbid = listitem.getVideoInfoTag().getDbId()
                 path = "videodb://tvshows/titles/%s/" % dbid
+                xbmc.executebuiltin('ReplaceWindow(Videos,{},return)'.format(path))
+            elif media == 'set':
+                setid = listitem.getProperty('setid')
+                path = 'videodb://movies/sets/{0}/?setid={0}'.format(setid)
                 xbmc.executebuiltin('ReplaceWindow(Videos,{},return)'.format(path))
             elif media == 'season':
                 self._get_allitems('seasonepisodes', listitem)

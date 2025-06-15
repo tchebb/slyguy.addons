@@ -21,6 +21,7 @@ class Language(BaseLanguage):
     SEARCH_ARTISTS      = 32005
     SEARCH_ALBUMS       = 32006
     SEARCH_SONGS        = 32007
+    SEARCH_MOVIE_SETS   = 32008
 
 
 _ = Language()

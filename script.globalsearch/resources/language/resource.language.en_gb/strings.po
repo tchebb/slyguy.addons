@@ -85,7 +85,9 @@ msgctxt "#32007"
 msgid "Search Songs"
 msgstr ""
 
-# empty string with id 32008
+msgctxt "#32008"
+msgid "Search Movie Sets"
+msgstr ""
 
 msgctxt "#32009"
 msgid "Search Live TV"
