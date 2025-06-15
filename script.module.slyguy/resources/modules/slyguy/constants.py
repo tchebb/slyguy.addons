@@ -89,6 +89,7 @@ ROUTE_MIGRATE_DONE     = '_migrated'
 ROUTE_BOOKMARKS        = '_bookmarks'
 ROUTE_CONTEXT          = '_context'
 ROUTE_SCRIPT           = '_script'
+ROUTE_KEEP_ALIVE       = '_keep_alive'
 #################
 
 #### INPUTSTREAM ADAPTIVE #####

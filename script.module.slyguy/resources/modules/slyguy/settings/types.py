@@ -8,7 +8,7 @@ from kodi_six import xbmc, xbmcgui
 from slyguy import dialog, log, signals
 from slyguy.util import remove_file
 from slyguy.language import _
-from slyguy.constants import ADDON_ID, COMMON_ADDON_ID, ADDON_PROFILE, ADDON_NAME
+from slyguy.constants import ADDON_ID, COMMON_ADDON_ID, ADDON_PROFILE, ADDON_DEV
 
 from slyguy.settings.db_storage import DBStorage
 
@@ -536,6 +536,7 @@ class BaseSettings(object):
     MIGRATED = Bool('migrated', visible=False, override=False, inherit=False)
     USERDATA = Dict('userdata', visible=False, override=False, inherit=False) #LEGACY
     BOOKMARKS_DATA = List('bookmarks_data', visible=False, override=False, inherit=False)
+    KEEP_ALIVE = Number('keep_alive', default=0, visible=False, override=False, inherit=False)
     SETTINGS = {}
 
     def __init__(self, addon_id=ADDON_ID):
@@ -604,7 +605,8 @@ class BaseSettings(object):
 
         setting = Dict(key, owner=ADDON_ID, default=default, override=False, inherit=False, visible=False)
         self.SETTINGS[key] = setting
-        log.debug("Setting '{}' not found. Created on-the-fly.".format(key))
+        if ADDON_DEV and not key.startswith('userdata_'):
+            log.warning("Setting '{}' not found. Created ad-hoc dict setting".format(key))
         return setting
 
     def reset(self):

@@ -3,6 +3,7 @@ import uuid
 from time import time
 
 from slyguy import monitor, gui, settings, log, check_donor, is_donor, set_drm_level, _
+from slyguy.keep_alive import call_keep_alives
 from slyguy.session import Session
 from slyguy.util import get_system_arch
 from slyguy.settings.db_storage import db
@@ -89,6 +90,7 @@ def _run():
                 if not is_donor() or settings.getBool('show_news'):
                     _check_news()
 
+                call_keep_alives()
                 check_repo()
             except Exception as e:
                 log.exception(e)

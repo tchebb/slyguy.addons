@@ -8,7 +8,7 @@ from six.moves.urllib_parse import quote_plus
 
 from kodi_six import xbmc, xbmcplugin, xbmcaddon
 
-from slyguy import monitor, router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _
+from slyguy import monitor, router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _, keep_alive
 from slyguy.constants import *
 from slyguy.exceptions import Error, PluginError, CancelDialog
 from slyguy.util import set_kodi_string, get_addon, remove_file, user_country
@@ -26,6 +26,7 @@ def exception(msg=''):
 
 logged_in = False
 
+
 # @plugin.no_error_gui()
 def no_error_gui():
     def decorator(f):
@@ -37,6 +38,7 @@ def no_error_gui():
                 log.exception(e)
         return decorated_function
     return lambda f: decorator(f)
+
 
 # @plugin.login_required()
 def login_required():
@@ -206,6 +208,7 @@ def search(key=None):
         return decorated_function
     return lambda f: decorator(f)
 
+
 # @plugin.pagination()
 def pagination(key=None):
     def decorator(f):
@@ -251,6 +254,7 @@ def pagination(key=None):
         return decorated_function
     return lambda f: decorator(f)
 
+
 def resolve():
     handle = _handle()
     if handle < 0:
@@ -261,6 +265,7 @@ def resolve():
         xbmcplugin.setResolvedUrl(handle, True, Item(path=path).get_li())
     else:
         xbmcplugin.endOfDirectory(handle, succeeded=False, updateListing=False, cacheToDisc=False)
+
 
 @signals.on(signals.ON_ERROR)
 def _error(e):
@@ -274,6 +279,7 @@ def _error(e):
     log.error(e, exc_info=True)
     gui.ok(e.message, heading=e.heading)
     resolve()
+
 
 @signals.on(signals.ON_EXCEPTION)
 def _exception(e):
@@ -351,15 +357,27 @@ def _bookmarks(**kwargs):
 
     return folder
 
+
 @route(ROUTE_IA_SETTINGS)
 def _ia_settings(**kwargs):
     _close()
     inputstream.open_settings()
 
+
+@route(ROUTE_KEEP_ALIVE)
+def _keep_alive(**kwargs):
+    try:
+        keep_alive.run()
+    except Exception as e:
+        #catch all errors so dispatch doesn't show error
+        log.exception(e)
+
+
 @route(ROUTE_IA_INSTALL)
 def _ia_install(**kwargs):
     _close()
     inputstream.install_widevine(reinstall=True)
+
 
 @route(ROUTE_IA_HELPER)
 def _ia_helper(protocol, drm='', **kwargs):
@@ -372,6 +390,7 @@ def _ia_helper(protocol, drm='', **kwargs):
     )
     return folder
 
+
 @route(ROUTE_SETUP_MERGE)
 def _setup_iptv_merge(**kwargs):
     addon = get_addon(IPTV_MERGE_ID, required=True, install=True)
@@ -379,10 +398,12 @@ def _setup_iptv_merge(**kwargs):
     plugin_url = router.url_for('setup_addon', addon_id=ADDON_ID, _addon_id=IPTV_MERGE_ID)
     xbmc.executebuiltin('RunPlugin({})'.format(plugin_url))
 
+
 @route(ROUTE_MIGRATE_DONE)
 def _migrate_done(old_addon_id, **kwargs):
     _close()
     migrate.migrate_done(old_addon_id)
+
 
 @route(ROUTE_SETTINGS)
 def _settings(category=0, **kwargs):
@@ -549,9 +570,11 @@ def service(interval=ROUTE_SERVICE_INTERVAL):
 
         monitor.waitForAbort(5)
 
+
 def _handle():
     try: return int(sys.argv[1])
     except: return -1
+
 
 def _autoplay(folder, pattern, playable=True):
     choose = 'pick'
