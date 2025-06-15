@@ -1,7 +1,7 @@
 import time
 from six.moves.urllib_parse import urlencode
 
-from slyguy import userdata
+from slyguy import userdata, keep_alive
 from slyguy.log import log
 from slyguy.session import Session
 from slyguy.exceptions import Error
@@ -10,14 +10,17 @@ from slyguy.util import jwt_data
 from .language import _
 from .constants import *
 
+
 class APIError(Error):
     pass
+
 
 class API(object):
     def new_session(self):
         self.logged_in = False
         self._session = Session(HEADERS, base_url=API_URL)
         self._set_authentication()
+        keep_alive.register(self._refresh_token, hours=12, enable=self.logged_in)
 
     def _set_authentication(self):
         auth_token = userdata.get('auth_token')
@@ -69,7 +72,7 @@ class API(object):
         return True
 
     def _refresh_token(self, force=False):
-        if not force and userdata.get('token_expires', 0) > time.time():
+        if not self.logged_in or (not force and userdata.get('token_expires', 0) > time.time()):
             return
 
         log.debug('Refreshing token')

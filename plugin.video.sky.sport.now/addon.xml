@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.video.sky.sport.now" name="Sky Sport Now" provider-name="SlyGuy" version="0.7.0">
+<addon id="plugin.video.sky.sport.now" name="Sky Sport Now" provider-name="SlyGuy" version="0.7.1">
   <requires>
-    <import addon="script.module.slyguy" version="0.84.0"/>
+    <import addon="script.module.slyguy" version="0.86.17"/>
   </requires>
   <extension point="xbmc.python.pluginsource" library="default.py" provides="video">
     <provides>video</provides>
@@ -15,7 +15,7 @@ Subscription required.</description>
     <license></license>
     <language></language>
     <website></website>
-    <news>Fix ESPN channels</news>
+    <news>Add keep-alive</news>
     <assets>
       <icon>icon.png</icon>
       <fanart>fanart.jpg</fanart>

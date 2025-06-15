@@ -6,8 +6,7 @@ import arrow
 from kodi_six import xbmc
 
 from slyguy import plugin, gui, userdata, signals, inputstream
-from slyguy.exceptions import PluginError
-from slyguy.constants import MIDDLEWARE_PLUGIN, PLAY_FROM_TYPES, PLAY_FROM_ASK, PLAY_FROM_START, PLAY_FROM_LIVE, LIVE_HEAD, ROUTE_LIVE_TAG, KODI_VERSION
+from slyguy.constants import *
 
 from .api import API
 from .language import _
@@ -20,6 +19,7 @@ api = API()
 def before_dispatch():
     api.new_session()
     plugin.logged_in = api.logged_in
+
 
 @plugin.route('')
 def home(**kwargs):
