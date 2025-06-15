@@ -5,6 +5,7 @@ from difflib import SequenceMatcher
 
 from kodi_six import xbmc, xbmcgui
 
+from slyguy.plugin import process_support
 from slyguy.log import log
 from slyguy.constants import ADDON, ADDON_VERSION
 from slyguy.mem_cache import cached
@@ -291,6 +292,7 @@ class GUI(xbmcgui.WindowXML):
                 self.setFocusId(self.getCurrentContainerId())
                 self.menutype = cat['type']
                 self.focusset = 'true'
+            process_support()
 
     def _fetch_channelgroups(self, cat):
         self.getControl(SEARCHCATEGORY).setLabel(xbmc.getLocalizedString(19069))
