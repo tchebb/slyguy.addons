@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="slyguy.trailers" name="SlyGuy Trailers" provider-name="SlyGuy" version="0.0.12">
+<addon id="slyguy.trailers" name="SlyGuy Trailers" provider-name="SlyGuy" version="0.0.13">
     <requires>
-        <import addon="script.module.slyguy" version="0.85.89"/>
+        <import addon="script.module.slyguy" version="0.86.19"/>
     </requires>
     <extension point="xbmc.python.pluginsource" library="default.py">
         <provides>executable</provides>
@@ -28,7 +28,7 @@
         <license></license>
         <language></language>
         <website></website>
-        <news>Sync to yt-dlp-2025.06.09</news>
+        <news>Add new YT framerate setting</news>
         <assets>
         <icon>icon.png</icon>
         </assets>

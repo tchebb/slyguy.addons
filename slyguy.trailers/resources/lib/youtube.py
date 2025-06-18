@@ -12,7 +12,7 @@ from slyguy.log import log
 from slyguy.util import get_addon
 
 from .constants import YOTUBE_PLUGIN_ID, TUBED_PLUGIN_ID
-from .settings import settings, YTMode
+from .settings import settings, YTMode, FPS_SCALE_INTEGER
 from .language import _
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -120,7 +120,10 @@ def play_yt_dlp(video_id):
             codec = format['vcodec'] if format['vcodec'] != 'none' else format['acodec']
             str += '\n<Representation id="{}" codecs="{}" bandwidth="{}"'.format(format["format_id"], codec, format["bitrate"])
             if format['vcodec'] != 'none':
-                str += ' width="{}" height="{}" frameRate="{}/1001"'.format(format["width"], format["height"], format["fps"]*1000)
+                # if FPS turned off, still output INTEGER and disable at proxy level so quality select still shows fps
+                map = settings.YT_FPS_MAP.value or FPS_SCALE_INTEGER
+                framerate = map.get(format["fps"]) or map[0].format(format["fps"])
+                str += ' width="{}" height="{}" frameRate="{}"'.format(format["width"], format["height"], framerate)
             str += '>'
             if format['acodec'] != 'none':
                 str += '\n<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>'
@@ -156,11 +159,16 @@ def play_yt_dlp(video_id):
     with open(xbmc.translatePath(path), 'w') as f:
         f.write(str)
 
+    proxy_data = {}
+    if settings.YT_FPS_MAP.value is None:
+        proxy_data['remove_framerate'] = True
+
     return plugin.Item(
         path = path,
         slug = video_id,
         inputstream = MPD(),
         headers = headers,
+        proxy_data = proxy_data,
     )
 
 
