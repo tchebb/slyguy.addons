@@ -280,6 +280,8 @@ class CommonSettings(BaseSettings):
     DEFAULT_SUBTITLE = Text('default_subtitle', default='original,interface,en', owner=COMMON_ADDON_ID, disabled_value='', enable=is_donor, disabled_reason=_.SUPPORTER_ONLY, category=Categories.PLAYER_LANGUAGE)
 
     # PLAYER / ADVANCED
+    REMOVE_FRAMERATE = Bool('remove_framerate', default=False, owner=COMMON_ADDON_ID, category=Categories.PLAYER_ADVANCED)
+    #CONVERT_FRAMERATE = Bool('convert_framerate', disable=False)
     REINSTALL_WV = Action("RunPlugin(plugin://{}/?_=_ia_install)".format(COMMON_ADDON_ID), visible=not IS_ANDROID, category=Categories.PLAYER_ADVANCED)
     LIVE_PLAY_TYPE = Enum('live_play_type', options=[[_.PLAY_FROM_ASK, PLAY_FROM_ASK], [_.PLAY_FROM_LIVE_CONTEXT, PLAY_FROM_LIVE], [_.PLAY_FROM_BEGINNING, PLAY_FROM_START]],
                     loop=True, default=PLAY_FROM_ASK, owner=COMMON_ADDON_ID, category=Categories.PLAYER_ADVANCED)

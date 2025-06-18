@@ -316,6 +316,7 @@ class BaseLanguage(object):
     WV_UNSUPPORTED_IA           = 32227
     VALID_TO                    = 32228
     EXTRAS                      = 32229
+    REMOVE_FRAMERATE            = 32230
 
     def __init__(self):
         self._addon_map = {}    

@@ -441,7 +441,7 @@ class Item(object):
                     'interface_language': xbmc.getLanguage(xbmc.ISO_639_1),
                     'subs_forced': settings.getBool('subs_forced', True),
                     'subs_non_forced': settings.getBool('subs_non_forced', True),
-                    'remove_framerate': False,
+                    'remove_framerate': settings.REMOVE_FRAMERATE.value,
                     'subtitles': [],
                     'path_subs': {},
                     'addon_id': ADDON_ID,

@@ -1128,3 +1128,7 @@ msgstr ""
 msgctxt "#32229"
 msgid "Extras"
 msgstr ""
+
+msgctxt "#32230"
+msgid "Remove framerate hints from manifests"
+msgstr ""
