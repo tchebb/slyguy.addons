@@ -129,7 +129,7 @@ def _write_epg(file_path, data):
                     continue
 
                 if not item.get('title') or not item.get('start') or not item.get('stop'):
-                    log.debug('IPTV Manager - Skipping item as missing data: {}'.format(item))
+                    log.debug('iptv_manager.py - Skipping item as missing required data: {}'.format(item))
                     continue
 
                 buffer = io.StringIO()
