@@ -97,19 +97,3 @@ msgstr ""
 msgctxt "#30027"
 msgid "Enable for TV Shows"
 msgstr ""
-
-msgctxt "#30028"
-msgid "Framerate Mode"
-msgstr ""
-
-msgctxt "#30029"
-msgid "Whole Numbers (eg. 24)"
-msgstr ""
-
-msgctxt "#30030"
-msgid "Fractional Numbers (eg. 23.98)"
-msgstr ""
-
-msgctxt "#30031"
-msgid "Remove Framerates"
-msgstr ""

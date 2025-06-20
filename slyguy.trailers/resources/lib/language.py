@@ -25,10 +25,6 @@ class Language(BaseLanguage):
     TUBED_PLUGIN                = 30025
     TRAILER_IMDB                = 30026
     TRAILER_IMDB_TV             = 30027
-    FPS_MAP                     = 30028
-    INTEGER_FPS                 = 30029
-    FRACTIONAL_FPS              = 30030
-    NO_FPS                      = 30031
 
 
 _ = Language()
