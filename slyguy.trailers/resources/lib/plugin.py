@@ -39,11 +39,12 @@ def _get_trailer_path(path):
 
 def _li_to_item(li):
     vid_tag = li.getVideoInfoTag()
+    title = u"{} ({})".format(li.getLabel(), _.TRAILER)
 
     item = plugin.Item()
-    item.label = u"{} ({})".format(li.getLabel(), _.TRAILER)
+    item.label = title
     item.info = {
-        'title': li.getLabel(),
+        'title': title,
         'plot': vid_tag.getPlot(),
         'tagline': vid_tag.getTagLine(),
         'trailer': vid_tag.getTrailer(),
