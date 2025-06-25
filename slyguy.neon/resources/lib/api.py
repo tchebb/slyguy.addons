@@ -58,11 +58,19 @@ class API(object):
             'input': {
                 'deviceInfo': self._device_info(username),
             },
-            'username': username,
+        }
+
+        data = self._query_request(queries.CONFIG, variables)
+        if data.get('errors'):
+            raise APIError(data['errors'][0].get('message'))
+        token = data['data']['config']['session']['token']
+
+        variables = {
+            'email': username,
             'password': password,
         }
 
-        data = self._query_request(queries.LOGIN, variables)
+        data = self._query_request(queries.LOGIN, variables, headers={'Authorization': 'Bearer {}'.format(token)})
         if data.get('errors'):
             raise APIError(data['errors'][0].get('message'))
 

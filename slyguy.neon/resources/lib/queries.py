@@ -1,10 +1,6 @@
 LOGIN = """
-query LoginQuery($input: ConfigInput, $username: String!, $password: String!) {
-    config(input: $input) {
-        __typename
-            videoPlayer {__typename videoCloudPlayerId videoCloudAccountId videoCloudPolicyKey}
-    }
-    login(email: $username, password: $password) {
+query LoginQuery($email: String!, $password: String!) {
+    login(email: $email, password: $password) {
         __typename 
             session {__typename token}
             name surname email
@@ -18,7 +14,6 @@ query SplashConfig($input: ConfigInput) {
     config(input: $input) {
         __typename 
             session {__typename token}
-            videoPlayer {__typename videoCloudPlayerId videoCloudAccountId videoCloudPolicyKey}
     }
 }
 """
