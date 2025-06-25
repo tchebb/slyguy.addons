@@ -162,6 +162,10 @@ def process_rows(rows):
             if 'slot' in row:
                 row['slots'] = [row['slot']]
 
+            label = u'{:03d} | {}'.format(row['number'], row['title'])
+            if not row.get('mySchedule'):
+                label += ' ' + _(_.SUBSCRIPTION_REQUIRED, _color='red', _bold=True)
+
             plot = u''
             count = 0
             for slot in row.get('slots', []):
@@ -180,7 +184,7 @@ def process_rows(rows):
                     break
 
             items.append(plugin.Item(
-                label = u'{:03d} | {}'.format(row['number'], row['title']),
+                label = label,
                 art = {'thumb': row['tileImage']['uri']},
                 info = {
                     'plot': plot.strip('\n'),

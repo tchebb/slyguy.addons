@@ -14,7 +14,7 @@ EPG_URL = 'https://i.mjh.nz/SkyGo/epg.xml.gz'
 
 
 class Settings(CommonSettings):
-    SUBSCRIBED_ONLY = Bool('subscribed_only', _.SUBSCRIBED_ONLY, default=True)
+    SUBSCRIBED_ONLY = Bool('subscribed_only', _.SUBSCRIBED_ONLY, default=False)
     FLATTEN_SINGLE_SEASON = Bool('flatten_single_season', _.FLATTEN_SEASONS, default=True)
 
 

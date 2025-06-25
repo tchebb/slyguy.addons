@@ -23,7 +23,8 @@ msgid "Concurrent Streams Exceeded"
 msgstr ""
 
 msgctxt "#30007"
-msgid "{subscription} Subscription Required"
+msgid "{subscription} Subscription Required\n"
+"You can hide non-subscribed channels in the addon settings"
 msgstr ""
 
 msgctxt "#30009"
@@ -46,4 +47,8 @@ msgstr ""
 
 msgctxt "#30014"
 msgid "Show only subscribed live channels"
+msgstr ""
+
+msgctxt "#30015"
+msgid "[Subscription Required]"
 msgstr ""

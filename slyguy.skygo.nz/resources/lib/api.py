@@ -170,7 +170,7 @@ class API(object):
             data = self._query_request(queries.VOD_START, variables)['data']['startVodPlayback']
 
         if data['__typename'] == 'SubscriptionNeeded':
-            raise APIError(_(_.SUBSCRIPTION_REQUIRED, subscription=data['subscriptions'][0]['title']))
+            raise APIError(_(_.NOT_SUBSCRIBED, subscription=data['subscriptions'][0]['title']))
         elif data['__typename'] == 'Geoblocked':
             raise APIError(_.GEO_ERROR)
         elif data['__typename'] == 'ConcurrentStreamsExceeded':
