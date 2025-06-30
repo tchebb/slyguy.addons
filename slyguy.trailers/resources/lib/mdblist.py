@@ -1,6 +1,12 @@
 from slyguy.session import Session
+from slyguy.exceptions import Error
 
+from .language import _
 from .constants import MDBLIST_API_KEY, MDBLIST_API_URL
+
+
+class APIError(Error):
+    pass
 
 
 class API(object):
@@ -33,7 +39,10 @@ class API(object):
             'sort_by_score': True,
             'apikey': MDBLIST_API_KEY,
         }
-        return self._session.get('/search/{}'.format(mediatype), params=params).json()['search']
+        data = self._session.get('/search/{}'.format(mediatype), params=params).json()
+        if 'search' not in data:
+            raise APIError(_(_.FAILED_SEARCH, error=data.get('message'), mediatype=mediatype, title=title, year=year))
+        return data['search']
 
     def get_media(self, mediatype, id, id_type=None):
         mediatype = self._get_media_type(mediatype)

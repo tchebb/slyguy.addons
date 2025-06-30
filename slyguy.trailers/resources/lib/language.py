@@ -25,6 +25,6 @@ class Language(BaseLanguage):
     TUBED_PLUGIN                = 30025
     TRAILER_IMDB                = 30026
     TRAILER_IMDB_TV             = 30027
-
+    FAILED_SEARCH               = 30028
 
 _ = Language()

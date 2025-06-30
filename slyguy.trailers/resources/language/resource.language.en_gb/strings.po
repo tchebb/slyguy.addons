@@ -97,3 +97,8 @@ msgstr ""
 msgctxt "#30027"
 msgid "Enable for TV Shows"
 msgstr ""
+
+msgctxt "#30028"
+msgid "Failed mdblist search: {error}\n"
+"Searched for {mediatype} '{title}' ({year})"
+msgstr ""
