@@ -1,4 +1,5 @@
 import os
+from difflib import SequenceMatcher
 
 from kodi_six import xbmcvfs
 from six.moves.urllib_parse import urlparse
@@ -6,13 +7,14 @@ from six.moves.urllib_parse import urlparse
 from slyguy import plugin, gui
 from slyguy.constants import ROUTE_CONTEXT, ROUTE_SETTINGS, KODI_VERSION, ADDON_ID
 from slyguy.log import log
-from slyguy.util import get_addon, kodi_rpc
+from slyguy.util import get_addon, kodi_rpc, remove_kodi_formatting
 
 from .settings import settings
 from .youtube import play_youtube, get_youtube_id
 from .mdblist import API
 from .imdb import play_imdb
 from .language import _
+from .constants import SEARCH_MATCH_RATIO
 
 mdblist_api = API()
 
@@ -39,7 +41,10 @@ def _get_trailer_path(path):
 
 def _li_to_item(li):
     vid_tag = li.getVideoInfoTag()
-    title = u"{} ({})".format(li.getLabel(), _.TRAILER)
+
+    clean_title = remove_kodi_formatting(vid_tag.getTitle() or li.getLabel())
+    # (Trailer) stops trakt scrobbling (workaround)
+    title = u"{} ({})".format(clean_title, _.TRAILER)
 
     item = plugin.Item()
     item.label = title
@@ -52,6 +57,7 @@ def _li_to_item(li):
         'mediatype': vid_tag.getMediaType(),
         'dir': None,
         'filename': None,
+        'clean_title': clean_title,
         'unique_id': {},
     }
 
@@ -170,7 +176,7 @@ def context_trailer(listitem, **kwargs):
         if not item.path and settings.MDBLIST_SEARCH.value:
             item.path = _search_mdblist_trailer(
                 media_type = item.info['mediatype'],
-                title = item.info['title'],
+                title = item.info['clean_title'],
                 year = item.info['year'],
             )
 
@@ -189,7 +195,15 @@ def _search_mdblist_trailer(media_type, title, year):
     if not media_type or not title or not year:
         return
 
-    results = mdblist_api.search_media(media_type, title, year, limit=1)
+    log.debug("mdblist search for: {} '{}' ({})".format(media_type, title, year))
+    results = mdblist_api.search_media(media_type, title, year, limit=10)
+    title = "{} {}".format(title.lower().strip().replace(' ', ''), year)
+    for result in results:
+        result['ratio'] = SequenceMatcher(None, title, "{} {}".format(result['title'].lower().strip().replace(' ', ''), result['year'])).ratio()
+    results = sorted(results, key=lambda x: x['ratio'], reverse=True)
+    log.debug("mdblist search results: {}".format(results))
+
+    results = [x for x in results if x['ratio'] >= SEARCH_MATCH_RATIO]
     if not results:
         return
 

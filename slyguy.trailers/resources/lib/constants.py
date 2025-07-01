@@ -3,6 +3,7 @@ TUBED_PLUGIN_ID = 'plugin.video.tubed'
 
 MDBLIST_API_KEY = 'tliqxfv0tg537ff7xyqkv7tug'
 MDBLIST_API_URL = 'https://api.mdblist.com{}'
+SEARCH_MATCH_RATIO = 0.75
 
 IMDB_API_URL = 'https://graphql.prod.api.imdb.a2z.com/'
 IMDB_VIDEO_URL = 'https://www.imdb.com/video/{}/'
