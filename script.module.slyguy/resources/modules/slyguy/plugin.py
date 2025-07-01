@@ -11,7 +11,7 @@ from kodi_six import xbmc, xbmcplugin, xbmcaddon
 from slyguy import monitor, router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _, keep_alive
 from slyguy.constants import *
 from slyguy.exceptions import Error, PluginError, CancelDialog
-from slyguy.util import set_kodi_string, get_addon, remove_file, user_country
+from slyguy.util import set_kodi_string, get_addon, remove_file, user_country, remove_kodi_formatting
 from slyguy.settings.types import Category
 
 
@@ -1015,7 +1015,7 @@ def process_news():
 
 
 def get_trailer_item(item, check=True):
-    title = item.label
+    title = remove_kodi_formatting(item.info.get('title') or item.label)
     year = item.info.get('year')
     media_type = item.info.get('mediatype')
 

@@ -130,10 +130,6 @@ class Setting(object):
         return self._image
 
     @property
-    def is_default(self):
-        return self.value == self._default
-
-    @property
     def is_enabled(self):
         enabled = self._get_bool_condition(self._enable)
         if enabled and self._parent:

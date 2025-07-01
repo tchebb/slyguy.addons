@@ -33,6 +33,11 @@ from slyguy.exceptions import Error
 from slyguy.constants import *
 
 
+def remove_kodi_formatting(title):
+    # Remove tags like [b], [/b], [i], [/i], [u], [/u], [color=...], [/color]
+    return re.sub(r'\[/?[a-z]+(?:=[^\]]+)?\]', '', title, flags=re.IGNORECASE)
+
+
 def get_qr_img(qr_data, size=324):
     return 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(qr_data, size, size)
 
