@@ -35,7 +35,10 @@ def live_tv(**kwargs):
         epg_count = None
 
     for channel in get_channels(region):
-        plot = u''
+        if channel.get('network'):
+            plot = _(_.NETWORK, network=channel['network'], _bold=True) + u'\n'
+        else:
+            plot = u''
         count = 0
         if epg_count:
             for index, row in enumerate(channel.get('programs', [])):

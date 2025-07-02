@@ -11,6 +11,7 @@ class Language(BaseLanguage):
     DARWIN =            30006
     HOBART =            30007
     CANBERRA =          30008
+    NETWORK =           30009
 
 
 _ = Language()
