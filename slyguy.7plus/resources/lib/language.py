@@ -31,6 +31,9 @@ class Language(BaseLanguage):
     LOCATION_WRONG        = 30035
     CLEAR_DEVICE_ID       = 30036
     DEVICE_ID             = 30037
+    ACCOUNT_DENIED        = 30038
+    VERIFY_LOCATION       = 30039
+    LOCATION_ABOUT        = 30040
 
 
 _ = Language()

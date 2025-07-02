@@ -133,3 +133,17 @@ msgstr ""
 msgctxt "#30037"
 msgid "Device ID"
 msgstr ""
+
+msgctxt "#30038"
+msgid "403 denied on playback url\n"
+"This is often caused by account being banned. Try create a new account"
+msgstr ""
+
+msgctxt "#30039"
+msgid "Verify location?"
+msgstr ""
+
+msgctxt "#30040"
+msgid "Needed to watch some sport matches.\n"
+"Requires mobile phone with GPS."
+msgstr ""

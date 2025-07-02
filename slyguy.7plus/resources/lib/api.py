@@ -161,9 +161,13 @@ class API(object):
             params['videoType'] = 'live'
 
         headers = {
-            'Authorization': 'Bearer {}'.format(userdata.get('access_token') or DEFAULT_TOKEN),
+            'Authorization': 'Bearer {}'.format(userdata.get('access_token')),
         }
-        data = self._session.get('https://videoservice.swm.digital/playback', params=params, headers=headers).json()
+        resp = self._session.get('https://videoservice.swm.digital/playback', params=params, headers=headers)
+        if resp.status_code == 403:
+            raise APIError(_.ACCOUNT_DENIED)
+
+        data = resp.json()
         if 'media' not in data:
             if 'error' in data:
                 msg = data.get('description', data['error'])

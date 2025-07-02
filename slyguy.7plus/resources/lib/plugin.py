@@ -27,17 +27,17 @@ def before_dispatch():
 def home(**kwargs):
     folder = plugin.Folder(cacheToDisc=False)
 
-    folder.add_item(label=_(_.LIVE_TV, _bold=True), path=plugin.url_for(live_tv))
-    folder.add_item(label=_(_.FEATURED, _bold=True), path=plugin.url_for(content, slug='ctv-home'))
-    _nav(folder)
-    folder.add_item(label=_(_.NEWS, _bold=True), path=plugin.url_for(content, slug='news'))
-    folder.add_item(label=_(_.CATEGORIES, _bold=True), path=plugin.url_for(content, slug='all-categories'))
-    folder.add_item(label=_(_.SEARCH, _bold=True), path=plugin.url_for(search))
-
-    if api.logged_in:
-        folder.add_item(label=_.LOGOUT, path=plugin.url_for(logout), _kiosk=False, bookmark=False)
-    else:
+    if not api.logged_in:
         folder.add_item(label=_(_.LOGIN, _bold=True), path=plugin.url_for(login), bookmark=False)
+    else:
+        folder.add_item(label=_(_.LIVE_TV, _bold=True), path=plugin.url_for(live_tv))
+        folder.add_item(label=_(_.FEATURED, _bold=True), path=plugin.url_for(content, slug='ctv-home'))
+        _nav(folder)
+        folder.add_item(label=_(_.NEWS, _bold=True), path=plugin.url_for(content, slug='news'))
+        folder.add_item(label=_(_.CATEGORIES, _bold=True), path=plugin.url_for(content, slug='all-categories'))
+        folder.add_item(label=_(_.SEARCH, _bold=True), path=plugin.url_for(search))
+
+        folder.add_item(label=_.LOGOUT, path=plugin.url_for(logout), _kiosk=False, bookmark=False)
 
     if settings.getBool('bookmarks', True):
         folder.add_item(label=_(_.BOOKMARKS, _bold=True),  path=plugin.url_for(plugin.ROUTE_BOOKMARKS), bookmark=False)
@@ -61,7 +61,8 @@ def login(**kwargs):
 
 
 def _device_code():
-    data = api.device_code(location=True)
+    use_location = gui.yes_no(_.LOCATION_ABOUT, heading=_.VERIFY_LOCATION)
+    data = api.device_code(location=use_location)
     url = data['verification_uri_complete'].replace('code={}&'.format(data['user_code']), '')
     with gui.progress_qr(data['verification_uri_complete'], _(_.DEVICE_LINK_STEPS, code=data['user_code'], url=url), heading=_.DEVICE_CODE) as progress:
         for i in range(data['expires_in']):
@@ -413,6 +414,7 @@ def component(slug, id, label, expand_media=0, season_num=0, fanart=None, **kwar
 
 
 @plugin.route()
+@plugin.login_required()
 def play_vod(slug, **kwargs):
     data = api.content(slug)
 
@@ -432,6 +434,7 @@ def play_vod(slug, **kwargs):
 
 
 @plugin.route()
+@plugin.login_required()
 def play_channel(slug, **kwargs):
     data = api.video_player(slug)
     url = data['videoUrl']
@@ -446,6 +449,7 @@ def play_channel(slug, **kwargs):
 
 
 @plugin.route()
+@plugin.login_required()
 def play(account, reference, **kwargs):
     return _play(account, reference, live=ROUTE_LIVE_TAG in kwargs)
 
