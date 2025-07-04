@@ -39,7 +39,7 @@ def remove_kodi_formatting(title):
 
 
 def get_qr_img(qr_data, size=324):
-    return 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(qr_data, size, size)
+    return 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(quote(qr_data), size, size)
 
 
 def run_plugin(path, wait=False):
