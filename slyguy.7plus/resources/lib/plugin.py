@@ -63,7 +63,7 @@ def login(**kwargs):
 def _device_code():
     use_location = gui.yes_no(_.LOCATION_ABOUT, heading=_.VERIFY_LOCATION)
     data = api.device_code(location=use_location)
-    url = data['verification_uri_complete'].replace('code={}&'.format(data['user_code']), '')
+    url = data['verification_uri_complete'].replace('code={}&'.format(data['user_code']), '').replace('?locationRequired=False','')
     with gui.progress_qr(data['verification_uri_complete'], _(_.DEVICE_LINK_STEPS, code=data['user_code'], url=url), heading=_.DEVICE_CODE) as progress:
         for i in range(data['expires_in']):
             if progress.iscanceled() or monitor.waitForAbort(1):
