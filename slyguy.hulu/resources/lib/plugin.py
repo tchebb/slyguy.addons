@@ -61,10 +61,12 @@ def home(**kwargs):
 
     return folder
 
+
 def _hub_path(slug, view=1):
     if slug.lower().startswith('https'):
         slug = '/'.join(slug.split('?')[0].split('/')[6:])
     return plugin.url_for(hub, slug=slug, view=view)
+
 
 @plugin.route()
 @plugin.pagination()
@@ -91,6 +93,7 @@ def hub(slug, view=1, page=1, **kwargs):
         folder.add_items(items)
 
     return folder, 'pagination' in data and data['pagination'].get('next')
+
 
 def _process_rows(rows):
     my_stuff = not settings.getBool('hide_my_stuff', False)
@@ -229,6 +232,7 @@ def _process_rows(rows):
 
     return items
 
+
 ## USED IN SEARCH RESULTS & HUBS
 def _parse_view(row, my_stuff, sync, state):
     metrics = row['metrics_info']
@@ -317,6 +321,7 @@ def _parse_view(row, my_stuff, sync, state):
 
     return item
 
+
 @plugin.route()
 def series(id, **kwargs):
     data = api.series(id)
@@ -344,16 +349,19 @@ def series(id, **kwargs):
 
     return folder
 
+
 @plugin.route()
 def remove_my_stuff(eab_id, **kwargs):
     api.remove_bookmark(eab_id)
     gui.refresh()
+
 
 @plugin.route()
 def add_my_stuff(eab_id, title, **kwargs):
     if api.add_bookmark(eab_id):
         gui.notification(_.ADDED_MY_STUFF, heading=title)
     gui.refresh()
+
 
 def _entity_art(artwork):
     art = {'thumb': None, 'fanart': None}
@@ -372,6 +380,7 @@ def _entity_art(artwork):
 
     return art
 
+
 def _view_art(artwork):
     art = {'thumb': None, 'fanart': None}
     thumbs = ['vertical_tile', 'horizontal_tile', 'horizontal', 'horizontal_network']
@@ -389,11 +398,13 @@ def _view_art(artwork):
 
     return art
 
+
 @plugin.route()
 @plugin.search()
 def search(query, page, **kwargs):
     rows = api.search(query)
     return _process_rows(rows), False
+
 
 @plugin.route()
 def episodes(id, season, **kwargs):
@@ -408,6 +419,7 @@ def episodes(id, season, **kwargs):
     folder.add_items(items)
     return folder
 
+
 def _image(url, _type=None):
     if _type == 'live':
         operations = [{"trim":"(0,0,0,0)"},{"resize":"600x600|max"},{"extent":"600x600"},{"format":"png"}]
@@ -421,6 +433,7 @@ def _image(url, _type=None):
     #return 'https://img.hulu.com/user/v3/artwork/{}&operations={}|authorization={}'.format(url.split('/')[-1], quote(operations), quote(auth))
     cookie = '_hulu_at=eyJhbGciOiJSUzI1NiJ9.eyJhc3NpZ25tZW50cyI6ImV5SjJNU0k2VzExOSIsInJlZnJlc2hfaW50ZXJ2YWwiOjg2NDAwMDAwLCJ0b2tlbl9pZCI6ImIxMzJjY2FiLTNmMjQtNDQ1OS05MmY0LTA2NzBjMzI0NzdlZCIsImFub255bW91c19pZCI6ImJhMzUyYjEzLWFkNDEtNDhlNS04YjUyLTljMTA0N2IxMDIxNyIsImlzc3VlZF9hdCI6MTYzMTUwNjcwNTYwOCwidHRsIjozMTUzNjAwMDAwMCwiZGV2aWNlX3VwcGVyIjoxfQ.rzn7mJF2gsB-8nEi6TEUtWnt8bztjmP3vHGzo_XBa6yX1q8_sMJ8GoK0-_p5j8Rn65wZdaAYfTrK5TKg-e1upjZOwfOFNJucFZkJKLcn-ZtKoHDJoRi22RSnJMtHzKLfk020K_jDv8x_-ZQGKm86P2aqnOERUvKVr7sd7JvsH0QV5shlFuK6l-L90LDhZMm6MWJu5WV2jYmbmezpxm4DsWDc3hV6HgR_4rwibmW1X99l99e-g99eIBjvx6kihGvNcWgxNvYaUIvH5p-Bpx94H4BsH3NXtLd1OXsa851liEtu8LWjGuCb5b_RMz7GP3YiXb56Ao6sejuMr0ym8II5Ng;'
     return 'https://img.hulu.com/user/v3/artwork/{}&operations={}|cookie={}'.format(url.split('/')[-1], quote(operations), quote(cookie))
+
 
 @plugin.route()
 def live(**kwargs):
@@ -456,6 +469,7 @@ def live(**kwargs):
 
     return folder
 
+
 @plugin.route()
 def login(**kwargs):
     options = [
@@ -470,6 +484,7 @@ def login(**kwargs):
     _select_profile()
     gui.refresh()
 
+
 def _device_code():
     timeout = 300
     code, serial = api.device_code()
@@ -482,6 +497,7 @@ def _device_code():
             progress.update(int((i / float(timeout)) * 100))
             if i % 5 == 0 and api.login_device(code, serial):
                 return True
+
 
 def _email_password():
     email = gui.input(_.ASK_EMAIL, default=userdata.get('email', '')).strip()
@@ -496,14 +512,15 @@ def _email_password():
     api.login(email, password)
     return True
 
+
 @plugin.route()
-@plugin.login_required()
 def select_profile(**kwargs):
     if userdata.get('kid_lockdown', False):
         return
 
     _select_profile()
     gui.refresh()
+
 
 def _select_profile():
     data = api.profiles()
@@ -525,6 +542,7 @@ def _select_profile():
 
     _set_profile(values[index], data['pin_enabled'])
 
+
 def _set_profile(profile, pin_enabled=False):
     pin = None
     if pin_enabled and not profile['is_kids']:
@@ -537,6 +555,7 @@ def _set_profile(profile, pin_enabled=False):
 
     userdata.set('profile_name', profile['name'])
     gui.notification(_.PROFILE_ACTIVATED, heading=profile['name'])
+
 
 def _get_play_path(id, **kwargs):
     if not id:
@@ -552,6 +571,7 @@ def _get_play_path(id, **kwargs):
 
     return plugin.url_for(play, **kwargs)
 
+
 @plugin.route()
 @plugin.login_required()
 def play_channel(channel_id, **kwargs):
@@ -563,10 +583,12 @@ def play_channel(channel_id, **kwargs):
 
     return _play(epg_data[channel_id][0]['eab'], play_type=PLAY_FROM_LIVE, **kwargs)
 
+
 @plugin.route()
 @plugin.login_required()
 def play(id, play_type=None, **kwargs):
     return _play(id, play_type, **kwargs)
+
 
 def _play(id, play_type, **kwargs):
     entities = []
@@ -634,10 +656,12 @@ def _play(id, play_type, **kwargs):
 
     return item
 
+
 @plugin.route()
 @plugin.no_error_gui()
 def update_progress(eab_id, _time, **kwargs):
     api.update_progress(eab_id, int(_time))
+
 
 @plugin.route()
 def logout(**kwargs):
@@ -649,17 +673,19 @@ def logout(**kwargs):
     api.logout()
     gui.refresh()
 
+
 @plugin.route()
 @plugin.merge()
 @plugin.login_required()
 def playlist(output, **kwargs):
     with codecs.open(output, 'w', encoding='utf8') as f:
-        f.write(u'#EXTM3U x-tvg-url="{}"'.format(plugin.url_for(epg, output='$FILE')))
+        f.write(u'#EXTM3U')
 
         for channel in api.channels():
             f.write(u'\n#EXTINF:-1 tvg-id="{id}" tvg-name="{name}" tvg-logo="{logo}",{name}\n{url}'.format(
                 id=channel['id'], name=channel['name'], logo=_image(channel['logoUrl'], 'live'), url=plugin.url_for(play_channel, channel_id=channel['id'], _is_live=True),
             ))
+
 
 @plugin.route()
 @plugin.merge()
