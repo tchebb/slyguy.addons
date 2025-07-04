@@ -24,6 +24,7 @@ from slyguy.exceptions import Exit
 from slyguy.session import RawSession
 from slyguy.router import add_url_args
 from slyguy.smart_urls import get_dns_rewrites
+from slyguy.inputstream import install_widevine
 
 H264 = 'H.264'
 H265 = 'H.265'
@@ -1465,7 +1466,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         url = self._get_url('POST')
 
-        for i in range(3):
+        for i in range(4):
             response = self._proxy_request('POST', url)
             if url != self._session.get('license_url'):
                 break
@@ -1481,7 +1482,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             if response.ok and license_data:
                 log.info('WV License response OK and returned data')
                 self._session['license_init'] = True
-                break
+                self._output_response(response)
+                return
 
             if not license_data:
                 license_data = b'None'
@@ -1491,14 +1493,17 @@ class RequestHandler(BaseHTTPRequestHandler):
             except:
                 license_data = '...'
 
-            log.error('WV License attempt: {}/3 failed: {}'.format(i+1, license_data))
-            time.sleep(0.5)
-        else:
-            # only show error on initial license fail
-            if not self._session.get('license_init'):
-                gui.notification(_.PLAYBACK_FAILED_CHECK_LOG, heading=_.WV_FAILED, icon=xbmc.getInfoLabel('Player.Icon'))
+            log.error('WV License attempt: {}/4 failed: {}'.format(i+1, license_data))
+            time.sleep(0.1)
 
+        # stop IA/CDM retrying by returning an OK status
+        response.status_code = 204
         self._output_response(response)
+
+        # only show error on initial license fail
+        if not self._session.get('license_init'):
+            gui.notification(_.PLAYBACK_FAILED_CHECK_LOG, heading=_.WV_FAILED, icon=xbmc.getInfoLabel('Player.Icon'))
+            install_widevine(license_failed=True)
 
 class Response(object):
     def __init__(self):

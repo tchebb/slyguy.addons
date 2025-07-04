@@ -190,7 +190,7 @@ def require_version(required_version, required=False):
 
     return ia_addon if result else False
 
-def install_widevine(reinstall=False):
+def install_widevine(reinstall=False, license_failed=False):
     DST_FILES = {
         'Linux': 'libwidevinecdm.so',
         'Darwin': 'libwidevinecdm.dylib',
@@ -244,7 +244,7 @@ def install_widevine(reinstall=False):
         else:
             reinstall = True
 
-    if not reinstall and time.time() - last_check < IA_CHECK_EVERY:
+    if not reinstall and not license_failed and time.time() - last_check < IA_CHECK_EVERY:
         log.debug('Widevine - Already installed and no check required')
         return True
 
@@ -290,6 +290,10 @@ def install_widevine(reinstall=False):
             wv['label'] = _(_.WV_INSTALLED, label=wv['label'])
         elif wv['compatible'] and not wv.get('hidden'):
             has_compatible = True
+
+    # license_failed and there is another possible or we not latest then show dialog!
+    if license_failed and (has_compatible or wv_versions[0] != current):
+        reinstall = True
 
     new_wv_hash = hash_6(json.dumps([x for x in wv_versions if not x.get('hidden')]))
     if new_wv_hash != settings.get('_wv_latest_hash') and (current and not current['compatible'] and has_compatible):
