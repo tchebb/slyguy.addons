@@ -40,15 +40,14 @@ class KeepAlive(object):
             self.clear()
             return
 
+        self._update_keep_alive(force=True)
         log.debug("Calling keep-alive method: {}".format(self._func.__name__))
         try:
             self._func()
         except Exception as e:
-            self.log.warning("Keep-alive failed: {}. Trying again in 1 hour".format(e))
-            # try again in an hour
+            log.exception(e)
+            log.warning("Keep-alive failed: {}. Trying again in 1 hour".format(e))
             self._update_keep_alive(3600, force=True)
-        finally:
-            self._update_keep_alive(force=True)
 
 
 keep_alive = KeepAlive()
