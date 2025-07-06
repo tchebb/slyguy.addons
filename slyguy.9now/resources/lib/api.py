@@ -1,6 +1,6 @@
 import time
 
-from slyguy import util, userdata, log
+from slyguy import util, userdata, log, keep_alive
 from slyguy.session import Session
 from slyguy.exceptions import Error
 
@@ -13,6 +13,7 @@ class API(object):
         self.logged_in = False
         self._session = Session(HEADERS, base_url=API_URL)
         self._set_authentication(userdata.get('access_token'))
+        keep_alive.register(self._refresh_token, hours=12, enable=self.logged_in)
 
     def _set_authentication(self, access_token):
         if not access_token:
@@ -45,11 +46,10 @@ class API(object):
         return True
 
     def _refresh_token(self, force=False):
-        if not force and userdata.get('token_expires', 0) > time.time():
+        if not self.logged_in or (not force and userdata.get('token_expires', 0) > time.time()):
             return
 
         log.debug('Refreshing token')
-
         params = {
             'refresh_token': userdata.get('refresh_token'),
             'client_id': '9nowdevice',
