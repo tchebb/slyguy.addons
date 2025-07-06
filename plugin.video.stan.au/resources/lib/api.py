@@ -2,11 +2,10 @@ import time
 
 from six.moves.urllib_parse import urlencode
 
-from slyguy import userdata
+from slyguy import userdata, keep_alive, log
 from slyguy.session import Session
 from slyguy.exceptions import Error
 from slyguy.util import cenc_init
-from slyguy.drm import req_wv_level, req_hdcp_level, WV_L1, HDCP_2_2
 
 from .constants import *
 from .settings import settings
@@ -22,6 +21,7 @@ class API(object):
         self.logged_in = False
         self._session  = Session(HEADERS, base_url=API_URL)
         self._set_authentication()
+        keep_alive.register(self._refresh_token, hours=12, enable=self.logged_in)
 
     def _set_authentication(self):
         self.logged_in = userdata.get('token') != None
@@ -39,7 +39,7 @@ class API(object):
         return self.url('/pages/v6/{}.json'.format(key), page=page)
 
     def url(self, url, page=1):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'feedTypes': 'posters,landscapes,hero',
@@ -51,7 +51,7 @@ class API(object):
         return self._session.get(url, params=params).json()
 
     def search(self, query, page=1, limit=50):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'q': query,
@@ -67,9 +67,11 @@ class API(object):
 
         return self._session.get(url, params=params).json()
 
-    def _check_token(self, force=False):
-        if not force and userdata.get('expires') > time.time():
+    def _refresh_token(self, force=False):
+        if not self.logged_in or (not force and userdata.get('expires', 0) > time.time()):
             return
+
+        log.debug('Refreshing token')
 
         payload = {
             'jwToken': userdata.get('token'),
@@ -77,7 +79,7 @@ class API(object):
         self._oauth(payload)
 
     def set_profile(self, profile_id):
-        self._check_token()
+        self._refresh_token()
 
         payload = {
             'jwToken': userdata.get('token'),
@@ -159,7 +161,7 @@ class API(object):
         self._set_authentication()
 
     def watchlist(self):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -169,7 +171,7 @@ class API(object):
         return self._session.get(url, params=params).json()
 
     def history(self, program_ids=None):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -183,7 +185,7 @@ class API(object):
         return self._session.get(url, params=params).json()
 
     def profiles(self):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -192,7 +194,7 @@ class API(object):
         return self._session.get('/accounts/v1/users/{user_id}/profiles'.format(user_id=userdata.get('user_id')), params=params).json()
 
     def add_profile(self, name, icon_set, icon_index, kids=False):
-        self._check_token()
+        self._refresh_token()
 
         payload = {
             'jwToken': userdata.get('token'),
@@ -205,7 +207,7 @@ class API(object):
         return self._session.post('/accounts/v1/users/{user_id}/profiles'.format(user_id=userdata.get('user_id')), data=payload).json()
 
     def delete_profile(self, profile_id):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -215,7 +217,7 @@ class API(object):
         return self._session.delete('/accounts/v1/users/{user_id}/profiles'.format(user_id=userdata.get('user_id')), params=params).ok
 
     def profile_icons(self):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -224,7 +226,7 @@ class API(object):
         return self._session.get('/accounts/v1/accounts/icons', params=params).json()
 
     def program(self, program_id):
-        self._check_token()
+        self._refresh_token()
 
         params = {
             'jwToken': userdata.get('token'),
@@ -233,7 +235,7 @@ class API(object):
         return self._session.get('/programs/v1/programs/{program_id}'.format(program_id=program_id), params=params).json()
 
     def play(self, program_id):
-        self._check_token(force=True)
+        self._refresh_token()
 
         program_data = self.program(program_id)
         if 'errors' in program_data:
