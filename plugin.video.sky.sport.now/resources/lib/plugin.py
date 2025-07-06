@@ -66,7 +66,7 @@ def _device_code():
     expires = 300 #5mins
     interval = 5 #check every 5 seconds
 
-    with gui.progress(_(_.DEVICE_LINK_STEPS, url=DEVICE_CODE_URL, code=data['pin']), heading=_.DEVICE_CODE) as progress:
+    with gui.progress_qr(DEVICE_CODE_URL, _(_.DEVICE_LINK_STEPS, code=data['pin'], url=DEVICE_CODE_URL), heading=_.DEVICE_CODE) as progress:
         while (time.time() - start) < expires:
             for i in range(interval):
                 if progress.iscanceled() or monitor.waitForAbort(1):

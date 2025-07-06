@@ -76,7 +76,6 @@ class API(object):
             return
 
         log.debug('Refreshing token')
-
         payload = {
             'refreshToken': userdata.get('refresh_token'),
         }
@@ -170,7 +169,7 @@ class API(object):
         code = data.get('statusCode') or data.get('status')
         if code and code != 200:
             error = data.get('message') or data.get('statusText') or data.get('messages', [''])[0]
-            raise APIError(error)
+            raise APIError(_(_.API_ERROR, error=error))
 
     def channels(self, page=1):
         self._refresh_token()
@@ -199,7 +198,10 @@ class API(object):
     def play_event(self, event_id):
         self._refresh_token(force=True)
         event_data = self._session.get('/v2/event/{}'.format(event_id)).json()
+
         stream_data = self._session.get('/v2/stream/event/{}'.format(event_id)).json()
+        self._check_errors(stream_data)
+
         url = stream_data['playerUrlCallback'] + '&dvr=true'
         playback_data = self._session.get(url).json()
         self._check_errors(playback_data)
@@ -209,6 +211,8 @@ class API(object):
         self._refresh_token(force=True)
         vod_data = self._session.get('/v2/vod/{}'.format(vod_id)).json()
         stream_data = self._session.get('/v3/stream/vod/{}'.format(vod_id)).json()
+        self._check_errors(stream_data)
+
         playback_data = self._session.get(stream_data['playerUrlCallback']).json()
         self._check_errors(playback_data)
         return playback_data, vod_data
