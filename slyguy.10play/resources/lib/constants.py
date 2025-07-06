@@ -3,6 +3,6 @@ HEADERS = {
 }
 
 HEX_KEY = 'b918ff793563080c5821c89ee6c415c363cb36d369db1020369ac4b405a0211d'
-ACTIVATE_URL = 'https://10play.com.au/activate'
-CONFIG_URL = 'https://10play.com.au/api/v1/config'
+ACTIVATE_URL = 'https://10.com.au/activate'
+CONFIG_URL = 'https://10.com.au/api/v1/config'
 LEGACY_VIDEO_URL = 'https://vod.ten.com.au/api/videos/bcquery'
