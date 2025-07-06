@@ -61,7 +61,7 @@ def _device_code():
     monitor = xbmc.Monitor()
     data = api.device_code()
 
-    with gui.progress(_(_.DEVICE_LINK_STEPS, code=data['auth_code'], url=ACTIVATE_URL), heading=_.DEVICE_CODE) as progress:
+    with gui.progress_qr(ACTIVATE_URL, _(_.DEVICE_LINK_STEPS, code=data['auth_code'], url=ACTIVATE_URL), heading=_.DEVICE_CODE) as progress:
         for i in range(data['expires_in']):
             if progress.iscanceled() or monitor.waitForAbort(1):
                 return
