@@ -490,14 +490,6 @@ def _context(**kwargs):
     raise PluginError(_.NO_CONTEXT_METHOD)
 
 
-@route(ROUTE_SERVICE)
-def _service(**kwargs):
-    try:
-        signals.emit(signals.ON_SERVICE)
-    except Exception as e:
-        #catch all errors so dispatch doesn't show error
-        log.exception(e)
-
 # @route()
 # def views(content=None, **kwargs):
 #     choices = [['Movies', 'movies'], ['Shows', 'tvshows'], ['Mixed', 'mixed'], ['Menus', 'menus']]
@@ -551,24 +543,6 @@ def _service(**kwargs):
 #     userdata.delete('view_{}'.format(content))
 #     gui.notification('Reset')
 #     gui.refresh()
-
-def service(interval=ROUTE_SERVICE_INTERVAL):
-    delay = settings.getInt('service_delay', 0) or random.randint(10, 60)
-    monitor.waitForAbort(delay)
-
-    last_run = 0
-    while not monitor.abortRequested():
-        if time.time() - last_run >= interval:
-
-            try:
-                signals.emit(signals.ON_SERVICE)
-            except Exception as e:
-                #catch all errors so dispatch doesn't show error
-                log.exception(e)
-
-            last_run = time.time()
-
-        monitor.waitForAbort(5)
 
 
 def _handle():

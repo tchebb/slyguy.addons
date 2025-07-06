@@ -11,7 +11,6 @@ _skip = defaultdict(int)
 
 ON_ENTRY        = 'on_entry'
 AFTER_RESET     = 'after_reset'
-ON_SERVICE      = 'on_service'
 BEFORE_DISPATCH = 'before_dispatch'
 AFTER_DISPATCH  = 'after_dispatch'
 ON_ERROR        = 'on_error'
