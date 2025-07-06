@@ -1,5 +1,4 @@
 import os
-import re
 
 from kodi_six import xbmc, xbmcvfs
 from looseversion import LooseVersion
@@ -13,7 +12,7 @@ from slyguy.log import log
 from .language import _
 from .models import Playlist, EPG, Channel, Override, merge_info
 from .constants import *
-from .merger import Merger, check_merge_required, epg_file_name
+from .merger import Merger, check_merge_required
 from .settings import settings
 
 
@@ -52,22 +51,11 @@ def home(**kwargs):
         path  = plugin.url_for(merge),
     )
 
-    if settings.getBool('http_api'):
-        folder.add_item(
-            label = "HTTP API Running",
-            path = plugin.url_for(http_info),
-        )
-
     if settings.getBool('bookmarks', True):
         folder.add_item(label=_.BOOKMARKS, path=plugin.url_for(plugin.ROUTE_BOOKMARKS), bookmark=False)
 
     folder.add_item(label=_.SETTINGS, path=plugin.url_for(plugin.ROUTE_SETTINGS), _kiosk=False)
     return folder
-
-
-@plugin.route()
-def http_info(**kwargs):
-    gui.text("Playlist URL\n[B]{}[/B]\n\nEPG URL\n[B]{}[/B]".format(userdata.get('_playlist_url'), userdata.get('_epg_url')))
 
 
 @plugin.route()
@@ -80,6 +68,7 @@ def shift_playlist(playlist_id, shift, **kwargs):
     playlist.save()
 
     gui.refresh()
+
 
 @plugin.route()
 def playlists(**kwargs):
@@ -115,6 +104,7 @@ def playlists(**kwargs):
 
     return folder
 
+
 @plugin.route()
 def epgs(**kwargs):
     folder = plugin.Folder(_.EPGS)
@@ -140,6 +130,7 @@ def epgs(**kwargs):
 
     return folder
 
+
 @plugin.route()
 def delete_playlist(playlist_id, **kwargs):
     if not gui.yes_no(_.CONF_DELETE_PLAYLIST):
@@ -152,6 +143,7 @@ def delete_playlist(playlist_id, **kwargs):
 
     gui.refresh()
 
+
 @plugin.route()
 def delete_epg(epg_id, **kwargs):
     if not gui.yes_no(_.CONF_DELETE_EPG):
@@ -162,6 +154,7 @@ def delete_epg(epg_id, **kwargs):
     epg.delete_instance()
 
     gui.refresh()
+
 
 @plugin.route()
 def new_playlist(position=None, **kwargs):
@@ -180,6 +173,7 @@ def new_playlist(position=None, **kwargs):
 
     gui.refresh()
 
+
 @plugin.route()
 def new_epg(**kwargs):
     epg = EPG.user_create()
@@ -191,9 +185,11 @@ def new_epg(**kwargs):
 
     gui.refresh()
 
+
 @plugin.route()
 def open_settings(addon_id, **kwargs):
     get_addon(addon_id, required=True).openSettings()
+
 
 @plugin.route()
 def edit_playlist(playlist_id, **kwargs):
@@ -271,12 +267,14 @@ def edit_playlist(playlist_id, **kwargs):
 
     return folder
 
+
 @plugin.route()
 def configure_addon(addon_id, **kwargs):
     addon, data = merge_info(addon_id)
     if 'configure' in data:
         path = data['configure'].replace('$ID', addon_id)
         run_plugin(path, wait=True)
+
 
 @plugin.route()
 def edit_playlist_value(playlist_id, method, **kwargs):
@@ -287,6 +285,7 @@ def edit_playlist_value(playlist_id, method, **kwargs):
     if method():
         playlist.save()
         gui.refresh()
+
 
 @plugin.route()
 def edit_epg(epg_id, **kwargs):
@@ -325,6 +324,7 @@ def edit_epg(epg_id, **kwargs):
 
     return folder
 
+
 @plugin.route()
 def edit_epg_value(epg_id, method, **kwargs):
     epg_id = int(epg_id)
@@ -334,6 +334,7 @@ def edit_epg_value(epg_id, method, **kwargs):
     if method():
         epg.save()
         gui.refresh()
+
 
 @plugin.route()
 def manager(radio=0, **kwargs):
@@ -373,6 +374,7 @@ def manager(radio=0, **kwargs):
 
     return folder
 
+
 @plugin.route()
 @plugin.pagination()
 def channels(radio=0, page=1, **kwargs):
@@ -386,6 +388,7 @@ def channels(radio=0, page=1, **kwargs):
     items = _process_channels(query)
     folder.add_items(items)
     return folder, len(items) == page_size
+
 
 def _process_channels(query):
     items = []
@@ -428,9 +431,11 @@ def _process_channels(query):
 
     return items
 
+
 @plugin.route()
 def edit_channel(slug, **kwargs):
     pass
+
 
 @plugin.route()
 def reset_channel(slug, **kwargs):
@@ -446,6 +451,7 @@ def reset_channel(slug, **kwargs):
 
     gui.refresh()
 
+
 @plugin.route()
 def edit_channel_value(slug, method, **kwargs):
     channel = Channel.select(Channel, Override).where(Channel.slug == slug).join(Override, join_type='LEFT OUTER JOIN', on=(Channel.slug == Override.slug), attr='override').get()
@@ -459,6 +465,7 @@ def edit_channel_value(slug, method, **kwargs):
     if method(channel):
         channel.override.save(force_insert=create)
         gui.refresh()
+
 
 @plugin.route()
 @plugin.pagination()
@@ -479,6 +486,7 @@ def search_channel(query=None, radio=0, page=1, **kwargs):
     items = _process_channels(db_query)
     folder.add_items(items)
     return folder, len(items) == page_size
+
 
 @plugin.route()
 @plugin.pagination()
@@ -504,6 +512,7 @@ def playlist_channels(playlist_id, radio=0, page=1, **kwargs):
 
     return folder, len(items) == page_size
 
+
 @plugin.route()
 def add_channel(playlist_id, radio, **kwargs):
     playlist_id = int(playlist_id)
@@ -521,10 +530,12 @@ def add_channel(playlist_id, radio, **kwargs):
 
     gui.refresh()
 
+
 @plugin.route()
 def setup(**kwargs):
     if _setup():
         gui.refresh()
+
 
 def _setup(check_only=False, reinstall=True, run_merge=True):
     addon = get_addon(IPTV_SIMPLE_ID, required=not check_only, install=not check_only)
@@ -533,12 +544,17 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
     addon_path = xbmc.translatePath(addon.getAddonInfo('profile'))
     is_multi_instance = LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('20.8.0')
+    http_support = LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1')
     instance_filepath = os.path.join(addon_path, 'instance-settings-1.xml')
 
-    output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
-    playlist_path = os.path.join(output_dir, PLAYLIST_FILE_NAME)
-    epg_path = os.path.join(output_dir, epg_file_name())
-    path_type = '0'
+    if http_support and settings.HTTP_METHOD.value:
+        proxy_path = settings.PROXY_PATH.value
+        playlist_path = proxy_path + plugin.url_for(http_playlist)
+        path_type = '1'
+    else:
+        output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
+        playlist_path = os.path.join(output_dir, PLAYLIST_FILE_NAME)
+        path_type = '0'
 
     if is_multi_instance:
         try:
@@ -549,13 +565,13 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
         is_setup = 'id="kodi_addon_instance_name">{}</setting>'.format(ADDON_NAME) in data \
             and 'id="m3uRefreshMode">1</setting>' in data and 'id="m3uRefreshIntervalMins">5</setting>' in data \
-            and 'id="m3uPathType">{}</setting>'.format(path_type) in data and re.search('id="epgPathType".*?>{}</setting>'.format(path_type), data) \
+            and 'id="m3uPathType">{}</setting>'.format(path_type) in data \
             and 'id="m3uPath">{}</setting>'.format(playlist_path) in data and 'id="m3uUrl">{}</setting>'.format(playlist_path) \
-            and 'id="epgPath">{}</setting>'.format(epg_path) in data and 'id="epgUrl">{}</setting>'.format(epg_path) in data
+            and 'id="epgPath" default="true"' in data and 'id="epgUrl" default="true"' in data
     else:
-        is_setup = addon.getSetting('m3uPathType') == path_type and addon.getSetting('epgPathType') == path_type \
+        is_setup = addon.getSetting('m3uPathType') == path_type \
                     and addon.getSetting('m3uPath') == playlist_path and addon.getSetting('m3uUrl') == playlist_path \
-                    and addon.getSetting('epgPath') == epg_path and addon.getSetting('epgUrl') == epg_path
+                    and addon.getSetting('epgPath') == '' and addon.getSetting('epgUrl') == ''
 
     if check_only:
         return is_setup
@@ -591,16 +607,17 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
             except: pass
         ################################
 
-        addon.setSetting('epgPath', epg_path)
+        addon.setSetting('epgPath', '')
         addon.setSetting('m3uPath', playlist_path)
-        addon.setSetting('epgUrl', epg_path)
+        addon.setSetting('epgUrl', '')
         addon.setSetting('m3uUrl', playlist_path)
         addon.setSetting('m3uPathType', path_type)
-        addon.setSetting('epgPathType', path_type)
+        addon.setSetting('epgPathType', '')
 
         # newer PVR Simple uses instance settings that can't yet be set via python api
         # so do a workaround where we leverage the migration when no instance settings found
         if is_multi_instance:
+            addon.setSetting('epgCache', 'false')
             addon.setSetting('m3uCache', 'false')
             addon.setSetting('m3uRefreshMode', '1')
             addon.setSetting('m3uRefreshIntervalMins', '5')
@@ -629,7 +646,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
                 data = data.replace('Migrated Add-on Config', ADDON_NAME)
                 data = data.replace('<setting id="m3uPathType" default="true">1</setting>', '<setting id="m3uPathType">{}</setting>'.format(path_type)) #IPTV Simple 20.8.0 bug
                 data = data.replace('<setting id="connectioncheckinterval" default="true">10</setting>', '<setting id="connectioncheckinterval">1</setting>')
-                data = data.replace('<setting id="connectionchecktimeout" default="true">20</setting>', '<setting id="connectionchecktimeout">1</setting>')
+                data = data.replace('<setting id="connectionchecktimeout" default="true">20</setting>', '<setting id="connectionchecktimeout">10</setting>')
                 with open(instance_filepath, 'w') as f:
                     f.write(data)
             else:
@@ -652,6 +669,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
     return True
 
+
 @plugin.route()
 def merge(**kwargs):
     # no service running (kodi.proxy?), run_merge directly
@@ -662,6 +680,7 @@ def merge(**kwargs):
         raise PluginError(_.MERGE_IN_PROGRESS)
     else:
         set_kodi_string('_iptv_merge_force_run', '1')
+
 
 @plugin.route()
 @plugin.merge()
@@ -682,6 +701,7 @@ def run_merge(type='all', refresh=1, forced=0, **kwargs):
         path = merge.output_path
 
     return path
+
 
 @plugin.route()
 def setup_addon(addon_id, **kwargs):
@@ -705,6 +725,7 @@ def setup_addon(addon_id, **kwargs):
 
     _setup(reinstall=False, run_merge=True)
 
+
 @plugin.route()
 @plugin.plugin_request()
 def http_playlist(**kwargs):
@@ -712,12 +733,4 @@ def http_playlist(**kwargs):
     refresh = check_merge_required()
     path = merge.playlists(refresh)
     merge.epgs(refresh)
-    return {'url': path}
-
-@plugin.route()
-@plugin.plugin_request()
-def http_epg(**kwargs):
-    # never refresh as playlist method does that
-    merge = Merger(forced=0)
-    path = merge.epgs(0)
     return {'url': path}

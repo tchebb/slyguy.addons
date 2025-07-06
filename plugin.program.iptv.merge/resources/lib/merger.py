@@ -434,6 +434,9 @@ class Merger(object):
         playlist_path = os.path.join(self.output_path, PLAYLIST_FILE_NAME)
         working_path = os.path.join(self.working_path, PLAYLIST_FILE_NAME)
 
+        output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
+        epg_path = os.path.join(output_dir, epg_file_name()) # keep as special:// path
+
         if not refresh and xbmcvfs.exists(playlist_path) and xbmcvfs.exists(working_path):
             return working_path
 
@@ -502,7 +505,7 @@ class Merger(object):
             groups_disabled = settings.getBool('disable_groups', False)
 
             with codecs.open(working_path, 'w', encoding='utf8') as outfile:
-                outfile.write(u'#EXTM3U\n')
+                outfile.write(u'#EXTM3U x-tvg-url="{}"\n'.format(epg_path))
 
                 groups = []
                 group_order = settings.get('group_order')

@@ -26,7 +26,10 @@ def start():
 
     while not monitor.waitForAbort(1):
         forced = get_kodi_string('_iptv_merge_force_run') or 0
-        merge_required = check_merge_required()
+        if  settings.HTTP_METHOD.value:
+            merge_required = False
+        else:
+            merge_required = check_merge_required()
 
         if forced or merge_required:
             set_kodi_string('_iptv_merge_force_run', '1')
@@ -55,8 +58,8 @@ def start():
             progress = gui.progressbg(heading='Reloading IPTV Simple Client')
 
         if not forced and addon_version >= LooseVersion('20.8.0'):
-            log.info('Merge complete. IPTV Simple should reload upaded playlist within 10mins')
-            # Do nothing. rely on iptv simple reload every 10mins
+            log.info('Merge complete. IPTV Simple should reload updated playlist within 5mins')
+            # Do nothing. rely on iptv simple reload every 5mins
             restart_queued = False
 
         elif LooseVersion('4.3.0') <= addon_version < LooseVersion('20.8.0'):

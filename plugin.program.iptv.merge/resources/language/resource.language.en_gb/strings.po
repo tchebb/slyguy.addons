@@ -429,3 +429,7 @@ msgstr ""
 msgctxt "#30102"
 msgid "Default User-Agent"
 msgstr ""
+
+msgctxt "#30103"
+msgid "Use HTTP for playlist refreshes"
+msgstr ""
