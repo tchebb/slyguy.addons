@@ -164,10 +164,14 @@ class API(object):
             'Authorization': 'Bearer {}'.format(userdata.get('access_token')),
         }
         resp = self._session.get('https://videoservice.swm.digital/playback', params=params, headers=headers)
-        if resp.status_code == 403:
-            raise APIError(_.ACCOUNT_DENIED)
 
-        data = resp.json()
+        try:
+            data = resp.json()
+        except:
+            if resp.status_code == 403:
+                raise APIError(_.ACCOUNT_DENIED)
+            raise
+
         if 'media' not in data:
             if 'error' in data:
                 msg = data.get('description', data['error'])
