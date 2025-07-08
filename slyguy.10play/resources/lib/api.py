@@ -179,7 +179,8 @@ class API(object):
     def my_shows(self):
         self._refresh_token()
         url = '{}/shows'.format(self._config()['userEndpoints']['favouriteApiEndpoint'])
-        return self._request(url, headers={'authorization': 'Bearer {}'.format(userdata.get('access_token'))}).json().get('items', [])
+        data = self._request(url, headers={'authorization': 'Bearer {}'.format(userdata.get('access_token'))}).json() or {}
+        return data.get('items', [])
 
     def edit_my_show(self, show_id, add=True):
         self._refresh_token()
