@@ -4,7 +4,6 @@ import shutil
 import time
 import gzip
 import codecs
-import xml.parsers.expat
 
 import arrow
 from kodi_six import xbmc, xbmcvfs
@@ -23,8 +22,6 @@ from .language import _
 from .settings import settings
 from . import iptv_manager
 
-
-amp_pattern = re.compile(rb'^#?\w+;')
 
 class AddonError(Error):
     pass
@@ -70,7 +67,6 @@ def _seek_file(f, index, truncate=True):
 class XMLParser(object):
     def __init__(self, out, epg_ids=None):
         self._out = out
-
         if epg_ids is None:
             self._epg_ids = set()
             self._check_orphans = False
@@ -78,86 +74,74 @@ class XMLParser(object):
             self._epg_ids = set(epg_ids)
             self._check_orphans = True
 
+        self._tag_pattern = re.compile(br'<(channel|programme)(\s[^>]*)?(\/?)>')
+        self._attr_pattern = re.compile(br'(\w+)\s*=\s*"([^"]*)"')
         self._counts = {
             'channel': {'added': 0, 'skipped': 0},
             'programme': {'added': 0, 'skipped': 0},
-            '&_fix': 0,
+            'tags_ignored': 0,
         }
-
-        self._parser = xml.parsers.expat.ParserCreate()
-        self._parser.buffer_text = True
-        self._parser.StartElementHandler = self._start_element
-        self._parser.EndElementHandler = self._end_element
-
-        self._buffer = b''
-        self._offset = 0
-        self._add = False
-
-    def _fast_escape_amp(self, xml):
-        parts = xml.split(b'&')
-        if len(parts) == 1:
-            return xml
-        result = [parts[0]]
-        for part in parts[1:]:
-            if amp_pattern.match(part):
-                result.append(b'&' + part)
-            else:
-                self._counts['&_fix'] += 1
-                result.append(b'&amp;' + part)
-        return b''.join(result)
 
     def epg_count(self):
         if self._check_orphans:
-            count = 'Added {added} / Skipped {skipped}'.format(**self._counts['programme'])
+            return 'Added {added} / Skipped {skipped}'.format(**self._counts['programme'])
         else:
-            count = 'Added {added}'.format(**self._counts['programme'])
+            return 'Added {added}'.format(**self._counts['programme'])
 
-        if self._counts['&_fix']:
-            count += ' / Replaced {} &'.format(self._counts['&_fix'])
-        return count
-
-    def _start_element(self, name, attrs):
-        if name not in ('channel', 'programme'):
-            return
-
-        self._buffer = self._buffer[self._parser.CurrentByteIndex-self._offset:]
-        self._offset = self._parser.CurrentByteIndex
-
-        if not self._check_orphans:
-            self._add = True
-            return
-
-        if name == 'programme':
-            self._add = 'channel' in attrs and attrs['channel'] in self._epg_ids
-        elif name == 'channel':
-            self._add = 'id' in attrs and attrs['id'] in self._epg_ids
-
-    def _end_element(self, name):
-        if name not in ('channel', 'programme'):
-            return
-
-        if self._add:
-            self._counts[name]['added'] += 1
-            self._out.write(self._buffer[:self._parser.CurrentByteIndex-self._offset] + (b'</programme>' if name == 'programme' else b'</channel>'))
-        else:
-            self._counts[name]['skipped'] += 1
-
-        self._buffer = self._buffer[self._parser.CurrentByteIndex-self._offset:]
-        self._offset = self._parser.CurrentByteIndex
+    def _parse_attributes(self, attr_text):
+        return {
+            match.group(1).decode('utf-8'): match.group(2).decode('utf-8')
+            for match in self._attr_pattern.finditer(attr_text)
+        }
 
     def parse(self, _in, epg):
         epg.start_index = self._out.tell()
 
+        buffer = b""
         while True:
             chunk = _in.read(CHUNK_SIZE)
             if not chunk:
                 break
+            buffer += chunk
 
-            # TODO: this wouldnt work if the chunk ended with &
-            chunk = self._fast_escape_amp(chunk)
+            while True:
+                match = self._tag_pattern.search(buffer)
+                if not match:
+                    break  # No start tag found yet
 
-            self._buffer += chunk
-            self._parser.Parse(chunk)
+                tag = match.group(1).decode('utf-8')
+                attr_text = match.group(2) or b''
+                is_self_closing = bool(match.group(3))
+                start_tag_pos = match.start()
+                start_tag_end = match.end()
+
+                if is_self_closing:
+                    # Self-closing tag; no inner content
+                    raw_element = buffer[start_tag_pos:start_tag_end]
+                    buffer = buffer[start_tag_end:]
+                else:
+                    # Look for end tag
+                    end_tag = "</{}>".format(tag).encode('utf-8')
+                    end_tag_pos = buffer.find(end_tag, start_tag_end)
+                    if end_tag_pos == -1:
+                        break  # End tag not found yet; need more data
+                    end_tag_end = end_tag_pos + len(end_tag)
+                    raw_element = buffer[start_tag_pos:end_tag_end]
+                    buffer = buffer[end_tag_end:]
+
+                if tag not in ('channel', 'programme'):
+                    self._counts['tags_ignored'] += 1
+                    continue
+
+                if self._check_orphans:
+                    attrs = self._parse_attributes(attr_text)
+                    id = attrs.get('id') if tag == 'channel' else attrs.get('channel')
+                    if id and id not in self._epg_ids:
+                        self._counts[tag]['skipped'] += 1
+                        continue
+
+                self._counts[tag]['added'] += 1
+                self._out.write(raw_element)
 
         self._out.flush()
         epg.end_index = self._out.tell()
@@ -623,8 +607,7 @@ class Merger(object):
 
                     if progress: progress.update(int(count*(100/len(epgs))), 'Merging EPG ({}/{})'.format(count, len(epgs)), _(epg.label, _bold=True))
 
-                    file_index = _out.tell()
-
+                    start_index = _out.tell()
                     try:
                         log.debug('Processing: {}'.format(epg.path))
                         process_start = time.time()
@@ -643,18 +626,19 @@ class Merger(object):
                         epg.results.insert(0, result)
 
                     if result[1] == EPG.ERROR:
-                        _seek_file(_out, file_index)
+                        _seek_file(_out, start_index)
 
                         if epg.start_index > 0:
                             if copy_partial_data(working_path, _out, epg.start_index, epg.end_index):
                                 log.debug('Last used XML data loaded successfully')
-                                epg.start_index = file_index
+                                epg.start_index = start_index
                                 epg.end_index = _out.tell()
                             else:
                                 log.debug('Failed to load last XML data')
                                 epg.start_index = 0
                                 epg.end_index = 0
-                                _seek_file(_out, file_index)
+                                # rewind in case of partial failed copy
+                                _seek_file(_out, start_index)
 
                         if epg.results and epg.results[0][1] == EPG.ERROR:
                             epg.results[0] = result
