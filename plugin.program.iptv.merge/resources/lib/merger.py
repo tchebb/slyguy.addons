@@ -4,14 +4,15 @@ import shutil
 import time
 import gzip
 import codecs
+from looseversion import LooseVersion
 
 import arrow
-from kodi_six import xbmc, xbmcvfs
+from kodi_six import xbmc, xbmcvfs, xbmcaddon
 from six.moves.urllib.parse import unquote_plus, quote_plus
 
-from slyguy import database, gui, userdata
+from slyguy import database, gui, userdata, monitor
 from slyguy.log import log
-from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique
+from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique, kodi_rpc
 from slyguy.session import Session, gdrivedl
 from slyguy.constants import ADDON_PROFILE, CHUNK_SIZE
 from slyguy.exceptions import Error
@@ -419,7 +420,10 @@ class Merger(object):
         working_path = os.path.join(self.working_path, PLAYLIST_FILE_NAME)
 
         output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
-        epg_path = os.path.join(output_dir, epg_file_name()) # keep as special:// path
+        if settings.HTTP_METHOD.value:
+            epg_path = settings.HTTP_URL.value + epg_file_name()
+        else:
+            epg_path = os.path.join(output_dir, epg_file_name()) # keep as special:// path
 
         if not refresh and xbmcvfs.exists(playlist_path) and xbmcvfs.exists(working_path):
             return working_path
@@ -672,3 +676,47 @@ class Merger(object):
         log.debug('EPG Merge Time: {0:.2f}'.format(time.time() - start_time))
 
         return working_path
+
+
+def restart_pvr(forced=False):
+    if not settings.getBool('restart_pvr', False):
+        return False
+
+    try:
+        addon = xbmcaddon.Addon(IPTV_SIMPLE_ID)
+        addon_version = LooseVersion(addon.getAddonInfo('version'))
+    except Exception as e:
+        return
+
+    if forced:
+        progress = gui.progressbg(heading='Reloading IPTV Simple Client')
+
+    if not forced and addon_version >= LooseVersion('20.8.0'):
+        log.info('Merge complete. IPTV Simple should reload updated playlist within 5mins')
+
+    elif LooseVersion('4.3.0') <= addon_version < LooseVersion('20.8.0'):
+        # IPTV Simple version 4.3.0 added auto reload on settings change
+        log.info('Merge complete. IPTV Simple should reload immediately')
+        addon.setSetting('m3uPathType', '0')
+        if forced:
+            progress.update(100)
+            progress.close()
+
+    elif forced or (not xbmc.getCondVisibility('Pvr.IsPlayingTv') and not xbmc.getCondVisibility('Pvr.IsPlayingRadio')):
+        log.info('Merge complete. Reloading IPTV Simple using legacy enable/disable method')
+        kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': False})
+
+        wait_delay = 4
+        for i in range(wait_delay):
+            if monitor.waitForAbort(1):
+                break
+            if forced: progress.update((i+1)*int(100/wait_delay))
+
+        kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': True})
+
+        if forced:
+            progress.update(100)
+            progress.close()
+
+    else:
+        return True

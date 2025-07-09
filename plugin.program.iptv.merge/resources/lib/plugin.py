@@ -1,4 +1,5 @@
 import os
+import time
 
 from kodi_six import xbmc, xbmcvfs
 from looseversion import LooseVersion
@@ -8,11 +9,12 @@ from slyguy.util import set_kodi_setting, kodi_rpc, set_kodi_string, get_kodi_st
 from slyguy.constants import ADDON_PROFILE, ADDON_ID, ADDON_NAME
 from slyguy.exceptions import PluginError
 from slyguy.log import log
+from slyguy.session import RawSession
 
 from .language import _
 from .models import Playlist, EPG, Channel, Override, merge_info
 from .constants import *
-from .merger import Merger, check_merge_required
+from .merger import Merger
 from .settings import settings
 
 
@@ -544,12 +546,12 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
     addon_path = xbmc.translatePath(addon.getAddonInfo('profile'))
     is_multi_instance = LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('20.8.0')
-    http_support = LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1')
     instance_filepath = os.path.join(addon_path, 'instance-settings-1.xml')
 
-    if http_support and settings.HTTP_METHOD.value:
-        proxy_path = settings.PROXY_PATH.value
-        playlist_path = proxy_path + plugin.url_for(http_playlist)
+    if settings.HTTP_URL.value:
+        if not LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1'):
+            raise PluginError("HTTP method requires PVR Simple version 21.7.1 or newer!")
+        playlist_path = settings.HTTP_URL.value + PLAYLIST_FILE_NAME
         path_type = '1'
     else:
         output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
@@ -578,7 +580,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
     elif is_setup and not reinstall:
         if run_merge:
-            set_kodi_string('_iptv_merge_force_run', '1')
+            _run_merge()
         return True
 
     with gui.busy():
@@ -588,7 +590,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
         ## IMPORT ANY CURRENT URL SOURCES ##
         cur_epg_url = addon.getSetting('epgUrl')
         cur_epg_type = addon.getSetting('epgPathType')
-        if cur_epg_url and ADDON_ID.lower() not in cur_epg_url.lower():
+        if cur_epg_url and ADDON_ID.lower() not in cur_epg_url.lower() and '127.0.0.1' not in cur_epg_url:
             epg = EPG(source_type=EPG.TYPE_URL, path=cur_epg_url, enabled=cur_epg_type == '1')
             try: epg.save()
             except: pass
@@ -597,7 +599,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
         cur_m3u_type = addon.getSetting('m3uPathType')
         start_chno = int(addon.getSetting('startNum') or 1)
         #user_agent = addon.getSetting('userAgent')
-        if cur_m3u_url and ADDON_ID.lower() not in cur_m3u_url.lower():
+        if cur_m3u_url and ADDON_ID.lower() not in cur_m3u_url.lower() and '127.0.0.1' not in cur_m3u_url:
             playlist = Playlist(source_type=Playlist.TYPE_URL, path=cur_m3u_url, enabled=cur_m3u_type == '1')
             if start_chno != 1:
                 playlist.use_start_chno = True
@@ -646,7 +648,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
                 data = data.replace('Migrated Add-on Config', ADDON_NAME)
                 data = data.replace('<setting id="m3uPathType" default="true">1</setting>', '<setting id="m3uPathType">{}</setting>'.format(path_type)) #IPTV Simple 20.8.0 bug
                 data = data.replace('<setting id="connectioncheckinterval" default="true">10</setting>', '<setting id="connectioncheckinterval">1</setting>')
-                data = data.replace('<setting id="connectionchecktimeout" default="true">20</setting>', '<setting id="connectionchecktimeout">10</setting>')
+                data = data.replace('<setting id="connectionchecktimeout" default="true">20</setting>', '<setting id="connectionchecktimeout">1</setting>')
                 with open(instance_filepath, 'w') as f:
                     f.write(data)
             else:
@@ -663,7 +665,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
         monitor.waitForAbort(2)
 
         if run_merge:
-            set_kodi_string('_iptv_merge_force_run', '1')
+            _run_merge()
 
     gui.ok(_.SETUP_IPTV_COMPLETE)
 
@@ -672,32 +674,42 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
 @plugin.route()
 def merge(**kwargs):
-    # no service running (kodi.proxy?), run_merge directly
-    if not get_kodi_string('_iptv_merge_service_running'):
-        return plugin.redirect(plugin.url_for(run_merge, forced=1))
+    _run_merge()
 
-    if get_kodi_string('_iptv_merge_force_run'):
-        raise PluginError(_.MERGE_IN_PROGRESS)
+
+def _run_merge():
+    # http method
+    if settings.HTTP_URL.value:
+        run_plugin(plugin.url_for(run_merge), wait=False)
+    # kodi.proxy run_merge button
+    elif not get_kodi_string('_iptv_merge_service_running'):
+        return plugin.redirect(plugin.url_for(run_merge, forced=1))
     else:
+        # service no-http
+        if get_kodi_string('_iptv_merge_force_run'):
+            raise PluginError(_.MERGE_IN_PROGRESS)
         set_kodi_string('_iptv_merge_force_run', '1')
 
 
+# used by kodi.proxy
 @plugin.route()
 @plugin.merge()
-def run_merge(type='all', refresh=1, forced=0, **kwargs):
-    refresh = int(refresh)
-    merge = Merger(forced=int(forced))
+def run_merge(type='all', forced=0, **kwargs):
+    if settings.HTTP_URL.value:
+        RawSession().get(settings.HTTP_URL.value + RUN_MERGE_URL, timeout=600).raise_for_status()
+        return
 
+    merge = Merger(forced=int(forced))
     if type == 'playlist':
-        path = merge.playlists(refresh)
+        path = merge.playlists()
 
     elif type == 'epg':
-        merge.playlists(refresh)
-        path = merge.epgs(refresh)
+        merge.playlists()
+        path = merge.epgs()
 
     elif type == 'all':
-        merge.playlists(refresh)
-        merge.epgs(refresh)
+        merge.playlists()
+        merge.epgs()
         path = merge.output_path
 
     return path
@@ -724,13 +736,3 @@ def setup_addon(addon_id, **kwargs):
         run_plugin(path, wait=True)
 
     _setup(reinstall=False, run_merge=True)
-
-
-@plugin.route()
-@plugin.plugin_request()
-def http_playlist(**kwargs):
-    merge = Merger(forced=0)
-    refresh = check_merge_required()
-    path = merge.playlists(refresh)
-    merge.epgs(refresh)
-    return {'url': path}

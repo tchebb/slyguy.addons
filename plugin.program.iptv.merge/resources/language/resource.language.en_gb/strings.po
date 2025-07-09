@@ -431,5 +431,9 @@ msgid "Default User-Agent"
 msgstr ""
 
 msgctxt "#30103"
-msgid "Use HTTP for playlist refreshes"
+msgid "Use HTTP API"
+msgstr ""
+
+msgctxt "#30104"
+msgid "HTTP API Port Number"
 msgstr ""

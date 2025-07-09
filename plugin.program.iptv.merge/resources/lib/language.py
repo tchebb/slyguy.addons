@@ -105,6 +105,7 @@ class Language(BaseLanguage):
     GZ_EPG                 = 30101
     DEFAULT_USER_AGENT     = 30102
     HTTP_METHOD            = 30103
+    HTTP_PORT              = 30104
 
 
 _ = Language()
