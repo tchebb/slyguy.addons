@@ -1597,7 +1597,7 @@ class Proxy(object):
             gui.error(error)
             return
 
-        settings.PROXY_PORT._set_value(port)
+        settings.PROXY_PORT.store_value(port)
         self._server.allow_reuse_address = True
         self._httpd_thread = threading.Thread(target=self._server.serve_forever)
         self._httpd_thread.start()

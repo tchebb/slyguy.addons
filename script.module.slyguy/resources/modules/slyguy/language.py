@@ -96,7 +96,7 @@ class BaseLanguage(object):
     ERROR_DOWNLOADING_FILE      = 32033
     VERIFY_SSL                  = 32037
     SELECT_IA_VERSION           = 32038
-    SERVICE_DELAY               = 32039
+
     MD5_MISMATCH                = 32040
     NO_ITEMS                    = 32041
     MIGRATE_ADDON_NOT_FOUND     = 32042
