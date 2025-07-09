@@ -415,13 +415,13 @@ class Merger(object):
 
         return added_count
 
-    def playlists(self, refresh=True):
+    def playlists(self, refresh=True, http_url=None):
         playlist_path = os.path.join(self.output_path, PLAYLIST_FILE_NAME)
         working_path = os.path.join(self.working_path, PLAYLIST_FILE_NAME)
 
         output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
         if settings.HTTP_METHOD.value:
-            epg_path = settings.HTTP_URL.value + epg_file_name()
+            epg_path = (http_url or settings.HTTP_URL.value) + epg_file_name()
         else:
             epg_path = os.path.join(output_dir, epg_file_name()) # keep as special:// path
 

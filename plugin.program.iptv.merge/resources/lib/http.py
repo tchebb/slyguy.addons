@@ -52,10 +52,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             with MERGE_LOCK:
                 progress.close()
                 merge = Merger(forced=1)
-                merge.playlists(refresh=True)
-                merge.epgs(refresh=True)
-                restart_pvr(forced=True)
-                self.wfile.write(b"OK")
+                merge.playlists()
+                merge.epgs()
+
+            restart_pvr(forced=True)
+            self.wfile.write(b"OK")
         finally:
             FORCE_LOCK.release()
 
@@ -65,7 +66,10 @@ class RequestHandler(BaseHTTPRequestHandler):
         with MERGE_LOCK:
             settings.reset()
             refresh = check_merge_required()
-            path = Merger().playlists(refresh)
+
+            merger = Merger()
+            path = merger.playlists(refresh, http_url=self.headers.get('Host'))
+            merger.epgs(refresh)
             with open(path, 'rb') as f:
                 shutil.copyfileobj(f, self.wfile, length=CHUNK_SIZE)
 
@@ -73,9 +77,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         settings.reset()
-        refresh = check_merge_required()
         with MERGE_LOCK:
-            path = Merger().epgs(refresh)
+            path = Merger().epgs(refresh=False)
             with open(path, 'rb') as f:
                 shutil.copyfileobj(f, self.wfile, length=CHUNK_SIZE)
 
