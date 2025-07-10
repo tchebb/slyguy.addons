@@ -19,6 +19,7 @@ import requests
 from kodi_six import xbmc, xbmcgui, xbmcaddon, xbmcvfs
 from six.moves import queue, range
 from six.moves.urllib.parse import urlparse, urlunparse, quote, parse_qsl, unquote_plus
+from requests.models import PreparedRequest
 from six import PY2
 
 if sys.version_info >= (3, 8):
@@ -27,10 +28,9 @@ else:
     from six.moves.html_parser import HTMLParser
     html = HTMLParser()
 
-from slyguy import log, _
+from slyguy import log, router, _
 from slyguy.exceptions import Error
 from slyguy.constants import *
-from slyguy.router import add_url_args
 
 
 def remove_kodi_formatting(title):
@@ -45,7 +45,7 @@ def get_qr_img(qr_data, size=324):
 def run_plugin(path, wait=True, check=True):
     if wait:
         if check:
-            path = add_url_args(path, _run_plugin=1)
+            path = router.add_url_args(path, _run_plugin=1)
 
         files = xbmcvfs.listdir(path)[1]
         if not check:
@@ -61,6 +61,12 @@ def run_plugin(path, wait=True, check=True):
     else:
         xbmc.executebuiltin('RunPlugin({})'.format(path))
         return True
+
+
+def add_url_args(url, params=None):
+    req = PreparedRequest()
+    req.prepare_url(url, params)
+    return req.url
 
 
 def fix_url(url):
