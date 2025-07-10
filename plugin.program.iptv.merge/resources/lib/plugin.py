@@ -275,7 +275,7 @@ def configure_addon(addon_id, **kwargs):
     addon, data = merge_info(addon_id)
     if 'configure' in data:
         path = data['configure'].replace('$ID', addon_id)
-        run_plugin(path, wait=True)
+        run_plugin(path, check=False)
 
 
 @plugin.route()
@@ -691,14 +691,6 @@ def _run_merge():
         set_kodi_string('_iptv_merge_force_run', '1')
 
 
-@plugin.route()
-@plugin.plugin_request()
-def http_playlist(**kwargs):
-    # kept for older pvr setup with this old path
-    return
-
-
-
 # used by kodi.proxy
 @plugin.route()
 @plugin.merge()
@@ -741,6 +733,6 @@ def setup_addon(addon_id, **kwargs):
 
     if 'configure' in data:
         path = data['configure'].replace('$ID', addon_id)
-        run_plugin(path, wait=True)
+        run_plugin(path, check=False)
 
     _setup(reinstall=False, run_merge=True)

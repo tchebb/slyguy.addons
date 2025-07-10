@@ -197,20 +197,12 @@ class Merger(object):
     def _call_addon_method(self, plugin_url, file_path):
         quoted_file_path = quote_plus(file_path)
         plugin_url = plugin_url.replace('$FILE', quoted_file_path).replace('%24FILE', quoted_file_path)
-        dirs, files = run_plugin(plugin_url, wait=True)
-
-        try:
-            result, msg = int(files[0][0]), unquote_plus(files[0][1:])
-        except:
-            return
-
-        if not result:
-            raise AddonError(msg)
+        return_msg = run_plugin(plugin_url)
 
         if xbmcvfs.exists(file_path):
             return file_path
         else:
-            return msg
+            return return_msg
 
     def _process_source(self, source, method_name, file_path):
         remove_file(file_path)
