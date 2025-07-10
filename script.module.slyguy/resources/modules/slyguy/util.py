@@ -18,8 +18,7 @@ from contextlib import closing
 import requests
 from kodi_six import xbmc, xbmcgui, xbmcaddon, xbmcvfs
 from six.moves import queue, range
-from six.moves.urllib.parse import urlparse, urlunparse, quote, parse_qsl
-from requests.models import PreparedRequest
+from six.moves.urllib.parse import urlparse, urlunparse, quote, parse_qsl, unquote_plus
 from six import PY2
 
 if sys.version_info >= (3, 8):
@@ -31,6 +30,7 @@ else:
 from slyguy import log, _
 from slyguy.exceptions import Error
 from slyguy.constants import *
+from slyguy.router import add_url_args
 
 
 def remove_kodi_formatting(title):
@@ -42,13 +42,29 @@ def get_qr_img(qr_data, size=324):
     return 'http://api.qrserver.com/v1/create-qr-code/?data={}&size={}x{}'.format(quote(qr_data), size, size)
 
 
-def run_plugin(path, wait=False):
+def run_plugin(path, wait=True, check=True):
     if wait:
-        dirs, files = xbmcvfs.listdir(path)
-        return dirs, files
+        if check:
+            path = add_url_args(path, _run_plugin=1)
+
+        files = xbmcvfs.listdir(path)[1]
+        if not check:
+            return files
+
+        try:
+            result, data = int(files[0][0]), unquote_plus(files[0][1:])
+        except:
+            log.warning("run_plugin response not valid return format: {}".format(files))
+            result = True
+            data = files[0] if files else ''
+        else:
+            if not result and data:
+                raise Error(data)
+
+        return data
     else:
         xbmc.executebuiltin('RunPlugin({})'.format(path))
-        return [], []
+        return True
 
 
 def fix_url(url):
@@ -57,12 +73,6 @@ def fix_url(url):
         parse = parse._replace(path=re.sub('/{2,}','/',parse.path))
     url = urlunparse(parse)
     return url
-
-
-def add_url_args(url, params=None):
-    req = PreparedRequest()
-    req.prepare_url(url, params)
-    return req.url
 
 
 def check_port(port=0, default=False):

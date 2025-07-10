@@ -95,9 +95,8 @@ def middleware_plugin(response, url, **kwargs):
     if ADDON_DEV:
         shutil.copy(real_path, real_path+'.in')
 
-    url = add_url_args(url, _path=path, _proxy_caller=1)
-    dirs, files = run_plugin(url, wait=True)
-    data = json.loads(unquote_plus(files[0])) if files else {}
+    url = add_url_args(url, _path=path)
+    data = json.loads(run_plugin(url) or {})
 
     if not os.path.exists(real_path):
         raise ProxyException('No data returned from plugin')
@@ -143,9 +142,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             super(RequestHandler, self).handle()
         except Exception as e:
             log.error("PROXY ERROR: {}".format(e))
-            self.send_response(200) # stop retries
+            self.send_response(204) # stop retries
             self.end_headers()
-            self.wfile.write(b"ERROR: " + str(e).encode())
 
     def setup(self):
         BaseHTTPRequestHandler.setup(self)
@@ -237,10 +235,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             url = add_url_args(url, _path=path)
 
-        url = add_url_args(url, _headers=json.dumps(self._headers), _proxy_caller=1)
+        url = add_url_args(url, _headers=json.dumps(self._headers))
+        data = json.loads(run_plugin(url) or {})
 
-        dirs, files = run_plugin(url, wait=True)
-        data = json.loads(unquote_plus(files[0])) if files else {}
         for key in data.get('headers', {}):
             self._headers[key.lower()] = data['headers'][key]
 

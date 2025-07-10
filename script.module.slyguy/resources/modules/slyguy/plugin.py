@@ -10,7 +10,7 @@ from kodi_six import xbmc, xbmcplugin, xbmcaddon
 
 from slyguy import router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _, keep_alive
 from slyguy.constants import *
-from slyguy.exceptions import Error, PluginError, CancelDialog, RouterError
+from slyguy.exceptions import Error, PluginError, CancelDialog
 from slyguy.util import set_kodi_string, get_addon, remove_file, user_country, remove_kodi_formatting
 from slyguy.settings.types import Category
 
@@ -99,6 +99,7 @@ def plugin_middleware():
     log.debug('@plugin.plugin_middleware() is deprecated. Use @plugin.plugin_request() instead')
     return plugin_request()
 
+
 # @plugin.plugin_request()
 def plugin_request():
     def decorator(func):
@@ -113,45 +114,46 @@ def plugin_request():
             if '_headers' in kwargs:
                 kwargs['_headers'] = json.loads(kwargs['_headers'])
 
-            try:
-                data = func(*args, **kwargs)
-            except Exception as e:
-                log.exception(e)
-                data = None
+            message = json.dumps(func(*args, **kwargs) or {})
 
             folder = Folder(show_news=False)
             folder.add_item(
-                path = quote_plus(json.dumps(data or {})),
+                path = quote_plus(u'{}{}'.format(1, message)),
             )
             return folder
         return decorated_function
     return lambda func: decorator(func)
+
 
 # @plugin.merge()
 def merge():
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            result = False
-            try:
-                require_update()
-                message = f(*args, **kwargs) or ''
-            except Error as e:
-                log.debug(e, exc_info=True)
-                message = e.message
-            except Exception as e:
-                log.exception(e)
-                message = str(e)
-            else:
-                result = True
+            require_update()
+            message = f(*args, **kwargs) or ''
 
             folder = Folder(show_news=False)
             folder.add_item(
-                path = quote_plus(u'{}{}'.format(int(result), message)),
+                path = quote_plus(u'{}{}'.format(1, message)),
             )
             return folder
         return decorated_function
     return lambda f: decorator(f)
+
+
+@signals.on(signals.ON_PLUGIN_EXCEPTION)
+def _plugin_exception(e):
+    mem_cache.empty()
+    _close()
+
+    log.exception(e)
+    folder = Folder(show_news=False)
+    folder.add_item(
+        path = quote_plus(u'{}{}'.format(0, str(e))),
+    )
+    folder.display()
+
 
 # @plugin.search()
 def search(key=None):
