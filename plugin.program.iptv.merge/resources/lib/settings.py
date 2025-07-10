@@ -35,8 +35,8 @@ class Settings(CommonSettings):
     IPTV_MERGE_PROXY = Bool('iptv_merge_proxy', _.IPTV_MERGE_PROXY, default=True)
     DEFAULT_USER_AGENT = Text('user_agent', _.DEFAULT_USER_AGENT, default=DEFAULT_USERAGENT, parent=IPTV_MERGE_PROXY)
 
-    HTTP_METHOD = Bool('http_method', _.HTTP_METHOD, default=True, visible=KODI_VERSION >= 21, enable=KODI_VERSION >= 21, after_save=lambda val: restart_service(), after_clear=restart_service)
-    HTTP_PORT = Number('http_port', default=None, default_label=_.AUTO, after_save=lambda val: restart_service(), after_clear=restart_service)
+    HTTP_METHOD = Bool('http_method', _.HTTP_METHOD, default=KODI_VERSION >= 21, after_save=lambda val: restart_service(), after_clear=restart_service)
+    HTTP_PORT = Number('http_port', _.HTTP_PORT, default=None, default_label=_.AUTO, after_save=lambda val: restart_service(), after_clear=restart_service, parent=HTTP_METHOD)
     HTTP_URL = Text('http_url', visible=False)
 
 

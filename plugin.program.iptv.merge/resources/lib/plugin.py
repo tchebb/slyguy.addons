@@ -550,7 +550,7 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
 
     if settings.HTTP_URL.value:
         if not LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1'):
-            raise PluginError("HTTP method requires PVR Simple version 21.7.1 or newer!")
+            raise PluginError("HTTP method requires PVR Simple version 21.7.1 or newer. You can disable HTTP method in the add-on settings")
         playlist_path = settings.HTTP_URL.value + PLAYLIST_FILE_NAME
         path_type = '1'
     else:
