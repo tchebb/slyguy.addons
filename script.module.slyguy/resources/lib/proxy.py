@@ -96,7 +96,7 @@ def middleware_plugin(response, url, **kwargs):
         shutil.copy(real_path, real_path+'.in')
 
     url = add_url_args(url, _path=path)
-    data = json.loads(run_plugin(url) or {})
+    data = run_plugin(url)
 
     if not os.path.exists(real_path):
         raise ProxyException('No data returned from plugin')
@@ -236,7 +236,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             url = add_url_args(url, _path=path)
 
         url = add_url_args(url, _headers=json.dumps(self._headers))
-        data = json.loads(run_plugin(url) or {})
+        data = run_plugin(url)
 
         for key in data.get('headers', {}):
             self._headers[key.lower()] = data['headers'][key]

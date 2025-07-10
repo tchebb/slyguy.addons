@@ -51,17 +51,13 @@ def run_plugin(path, wait=True, check=True):
         if not check:
             return files
 
-        try:
-            result, data = int(files[0][0]), unquote_plus(files[0][1:])
-        except:
-            log.warning("run_plugin response not valid return format: {}".format(files))
-            result = True
-            data = files[0] if files else ''
-        else:
-            if not result and data:
-                raise Error(data)
+        data = json.loads(unquote_plus(files[0]))
+        if data.get('error'):
+            raise Error(data['error'])
+        if 'result' not in data:
+            raise Error('No result returned')
 
-        return data
+        return data['result']
     else:
         xbmc.executebuiltin('RunPlugin({})'.format(path))
         return True

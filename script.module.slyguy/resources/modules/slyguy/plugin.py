@@ -114,11 +114,11 @@ def plugin_request():
             if '_headers' in kwargs:
                 kwargs['_headers'] = json.loads(kwargs['_headers'])
 
-            message = json.dumps(func(*args, **kwargs) or {})
+            result = func(*args, **kwargs) or {}
 
             folder = Folder(show_news=False)
             folder.add_item(
-                path = quote_plus(u'{}{}'.format(1, message)),
+                path = quote_plus(json.dumps({'result': result})),
             )
             return folder
         return decorated_function
@@ -131,11 +131,11 @@ def merge():
         @wraps(f)
         def decorated_function(*args, **kwargs):
             require_update()
-            message = f(*args, **kwargs) or ''
+            result = f(*args, **kwargs) or ''
 
             folder = Folder(show_news=False)
             folder.add_item(
-                path = quote_plus(u'{}{}'.format(1, message)),
+                path = quote_plus(json.dumps({'result': result})),
             )
             return folder
         return decorated_function
@@ -150,7 +150,7 @@ def _plugin_exception(e):
     log.exception(e)
     folder = Folder(show_news=False)
     folder.add_item(
-        path = quote_plus(u'{}{}'.format(0, str(e))),
+        path = quote_plus(json.dumps({'error': str(e)}))
     )
     folder.display()
 
