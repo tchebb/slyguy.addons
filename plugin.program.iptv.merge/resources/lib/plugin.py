@@ -691,6 +691,14 @@ def _run_merge():
         set_kodi_string('_iptv_merge_force_run', '1')
 
 
+@plugin.route()
+@plugin.plugin_request()
+def http_playlist(**kwargs):
+    # kept for older pvr setup with this old path
+    return
+
+
+
 # used by kodi.proxy
 @plugin.route()
 @plugin.merge()
