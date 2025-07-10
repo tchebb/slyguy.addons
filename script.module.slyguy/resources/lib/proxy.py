@@ -63,6 +63,10 @@ class Redirect(Exception):
         self.url = url
 
 
+class ProxyException(Exception):
+    pass
+
+
 def middleware_regex(response, pattern, **kwargs):
     data = response.stream.content.decode('utf8')
     match = re.search(pattern, data)
@@ -91,12 +95,12 @@ def middleware_plugin(response, url, **kwargs):
     if ADDON_DEV:
         shutil.copy(real_path, real_path+'.in')
 
-    url = add_url_args(url, _path=path)
+    url = add_url_args(url, _path=path, _proxy_caller=1)
     dirs, files = run_plugin(url, wait=True)
-    data = json.loads(unquote_plus(files[0]))
+    data = json.loads(unquote_plus(files[0])) if files else {}
 
     if not os.path.exists(real_path):
-        raise Exception('No data returned from plugin')
+        raise ProxyException('No data returned from plugin')
 
     with open(real_path, 'rb') as f:
         response.stream.content = f.read()
@@ -133,6 +137,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         return
+
+    def handle(self):
+        try:
+            super(RequestHandler, self).handle()
+        except Exception as e:
+            log.error("PROXY ERROR: {}".format(e))
+            self.send_response(200) # stop retries
+            self.end_headers()
+            self.wfile.write(b"ERROR: " + str(e).encode())
 
     def setup(self):
         BaseHTTPRequestHandler.setup(self)
@@ -224,15 +237,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             url = add_url_args(url, _path=path)
 
-        url = add_url_args(url, _headers=json.dumps(self._headers))
+        url = add_url_args(url, _headers=json.dumps(self._headers), _proxy_caller=1)
 
         dirs, files = run_plugin(url, wait=True)
-        data = json.loads(unquote_plus(files[0]))
+        data = json.loads(unquote_plus(files[0])) if files else {}
         for key in data.get('headers', {}):
             self._headers[key.lower()] = data['headers'][key]
 
         if 'url' not in data:
-            raise Exception('No data returned from plugin')
+            raise ProxyException('No data returned from plugin')
 
         return data['url']
 
@@ -307,7 +320,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             response.headers['location'] = e.url
             response.stream.content = b''
         except Exception as e:
-            log.exception(e)
+            if type(e) != Exit:
+                log.error("PROXY ERROR: {}".format(e))
 
             def output_error(url):
                 response.status_code = 200
@@ -515,8 +529,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             root = parseString(data.encode('utf8'))
         except Exception as e:
-            log.error('Failed to parse dash: {}'.format(data))
-            raise
+            raise ProxyException('Failed to parse dash: {}'.format(data))
 
         if ADDON_DEV:
             pretty = root.toprettyxml(encoding='utf-8')
@@ -1301,7 +1314,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         is_master = False
         if '#EXTM3U' not in m3u8:
-            raise Exception('Invalid m3u8: {}'.format(m3u8))
+            raise ProxyException('Invalid m3u8: {}'.format(m3u8))
 
         if '#EXT-X-STREAM-INF' in m3u8:
             is_master = True
@@ -1362,7 +1375,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 with open(real_path, 'rb') as f:
                     response.stream.content = f.read()
             else:
-                raise Exception("File not found: {}".format(real_path))
+                raise ProxyException("File not found: {}".format(real_path))
 
             return response
 
@@ -1394,7 +1407,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             response = self._session['session'].request(method=method, url=url, headers=self._headers, data=self._post_data, allow_redirects=False, stream=True)
         except Exception as e:
             log.exception(e)
-            raise
+            raise ProxyException(e)
 
         log.debug('REQUEST TIME: {}'.format(time.time() - start))
         log.debug('RESPONSE IN: {} ({})'.format(url, response.status_code))
@@ -1531,7 +1544,7 @@ class ResponseStream(object):
     @content.setter
     def content(self, _bytes):
         if not type(_bytes) is bytes:
-            raise Exception('Only bytes allowed when setting content')
+            raise ProxyException('Only bytes allowed when setting content')
 
         self._bytes = _bytes
         self._response.headers['content-length'] = str(len(_bytes))

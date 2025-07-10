@@ -51,7 +51,7 @@ def parse_url(url):
 
     function = _routes.get(path)
     if not function:
-        raise RouterError(_(_.ROUTER_NO_FUNCTION, raw_url=url, parsed_url=path))
+        raise RouterError(_(_.ROUTER_NO_FUNCTION, raw_url=url, parsed_url=path), show_dialog='_proxy_caller' not in params)
 
     log('Router Parsed: \'{0}\' => {1} {2}'.format(url, function.__name__, params))
 
@@ -140,7 +140,7 @@ def dispatch(url=None):
             except: error = ''
 
             if error.startswith(function.__name__):
-                raise RouterError(_.ROUTER_NO_FUNCTION)
+                raise RouterError(_.ROUTER_NO_FUNCTION, show_dialog='_proxy_caller' not in params)
             else:
                 raise
 

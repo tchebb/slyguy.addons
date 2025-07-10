@@ -15,6 +15,16 @@ ADDON_FANART   = ADDON.getAddonInfo('fanart')
 ADDON_DEV      = bool(int(os.environ.get('SLYGUY_DEV', '0')))
 #################
 
+# easier for users to find / add urls.txt etc
+if not os.path.exists(ADDON_PROFILE):
+    os.makedirs(ADDON_PROFILE)
+    with open(os.path.join(ADDON_PROFILE, 'help.txt'), 'w') as f:
+        f.write("""My addon settings are stored in the script.module.slyguy\settings.db file
+
+Put your smart url actions in a "urls.txt" file in this directory (supporters only)
+https://www.matthuisman.nz/2022/06/slyguy-addons-smart-url-actions.html
+""")
+
 REPO_ADDON_ID = 'repository.slyguy'
 DEPENDENCIES_ADDON_ID = 'slyguy.dependencies'
 TRAILERS_ADDON_ID = 'slyguy.trailers'

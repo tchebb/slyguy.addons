@@ -8,9 +8,9 @@ from six.moves.urllib_parse import quote_plus
 
 from kodi_six import xbmc, xbmcplugin, xbmcaddon
 
-from slyguy import monitor, router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _, keep_alive
+from slyguy import router, gui, settings, userdata, inputstream, signals, migrate, bookmarks, mem_cache, is_donor, log, _, keep_alive
 from slyguy.constants import *
-from slyguy.exceptions import Error, PluginError, CancelDialog
+from slyguy.exceptions import Error, PluginError, CancelDialog, RouterError
 from slyguy.util import set_kodi_string, get_addon, remove_file, user_country, remove_kodi_formatting
 from slyguy.settings.types import Category
 
@@ -277,7 +277,8 @@ def _error(e):
     _close()
 
     log.error(e, exc_info=True)
-    gui.ok(e.message, heading=e.heading)
+    if e.show_dialog:
+        gui.ok(e.message, heading=e.heading)
     resolve()
 
 
@@ -286,11 +287,11 @@ def _exception(e):
     mem_cache.empty()
     _close()
 
-    if not isinstance(e, CancelDialog):
+    if isinstance(e, CancelDialog):
+        log.debug(e)
+    else:
         log.exception(e)
         gui.exception()
-    else:
-        log.debug(e)
 
     resolve()
 
