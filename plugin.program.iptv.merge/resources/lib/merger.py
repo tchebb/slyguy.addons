@@ -8,7 +8,7 @@ from looseversion import LooseVersion
 
 import arrow
 from kodi_six import xbmc, xbmcvfs, xbmcaddon
-from six.moves.urllib.parse import unquote_plus, quote_plus
+from six.moves.urllib.parse import quote_plus
 
 from slyguy import database, gui, userdata, monitor
 from slyguy.log import log
@@ -175,22 +175,20 @@ def check_merge_required():
 
 
 class Merger(object):
-    def __init__(self, output_path=None, forced=False):
-        self.working_path = ADDON_PROFILE
-        self.output_path = output_path or xbmc.translatePath(settings.get('output_dir', '').strip() or self.working_path)
-        self.temp_path = os.path.join(self.working_path, 'tmp')
-        self.tmp_file = os.path.join(self.temp_path, 'iptv_merge_tmp')
+    def __init__(self, output_dir=None):
+        self.output_dir = output_dir or settings.get('output_dir', '').strip() or ADDON_PROFILE
+        self.local_dir = xbmc.translatePath(ADDON_PROFILE)
+        self.temp_dir = os.path.join(self.local_dir, 'tmp')
 
-        if not xbmcvfs.exists(self.working_path):
-            xbmcvfs.mkdirs(self.working_path)
+        if not xbmcvfs.exists(self.local_dir):
+            xbmcvfs.mkdirs(self.local_dir)
 
-        if not xbmcvfs.exists(self.output_path):
-            xbmcvfs.mkdirs(self.output_path)
+        if not xbmcvfs.exists(self.output_dir):
+            xbmcvfs.mkdirs(self.output_dir)
 
-        if not xbmcvfs.exists(self.temp_path):
-            xbmcvfs.mkdirs(self.temp_path)
+        if not xbmcvfs.exists(self.temp_dir):
+            xbmcvfs.mkdirs(self.temp_dir)
 
-        self.forced = forced
         self._playlist_epgs = []
         self._extgroups = []
 
@@ -278,9 +276,9 @@ class Merger(object):
             xz_extract(file_path)
 
     def _process_playlist(self, playlist, file_path):
-        channel     = None
-        to_create   = set()
-        slugs       = set()
+        channel = None
+        to_create = set()
+        slugs = set()
         added_count = 0
 
         Channel.delete().where(Channel.playlist == playlist).execute()
@@ -407,24 +405,33 @@ class Merger(object):
 
         return added_count
 
-    def playlists(self, refresh=True, http_url=None):
-        playlist_path = os.path.join(self.output_path, PLAYLIST_FILE_NAME)
-        working_path = os.path.join(self.working_path, PLAYLIST_FILE_NAME)
+    def merge(self, force=False, http_host=None):
+        # check_merge_required will return True if either playlist or epg outputs are not found
+        refresh = force or check_merge_required()
 
-        output_dir = settings.get('output_dir', '').strip() or ADDON_PROFILE
-        if settings.HTTP_METHOD.value:
-            epg_path = (http_url or settings.HTTP_URL.value) + epg_file_name()
-        else:
-            epg_path = os.path.join(output_dir, epg_file_name()) # keep as special:// path
+        paths = {
+            'playlist': {
+                'output': os.path.join(self.output_dir, PLAYLIST_FILE_NAME), # can be remote, kodi style path
+                'local': os.path.join(self.local_dir, PLAYLIST_FILE_NAME), # always local translated path
+                'source': os.path.join(self.temp_dir, 'playlist_source.m3u8'), # always local translated path
+            },
+            'epg': {
+                'output': os.path.join(self.output_dir, epg_file_name()), # can be remote, kodi style path
+                'local': os.path.join(self.local_dir, epg_file_name()), # always local translated path
+                'build': os.path.join(self.temp_dir, EPG_FILE_NAME), # always local translated path
+                'source': os.path.join(self.temp_dir, 'epg_source.xml'), # always local translated path
+            }
+        }
 
-        if not refresh and xbmcvfs.exists(playlist_path) and xbmcvfs.exists(working_path):
-            return working_path
+        if not refresh and xbmcvfs.exists(paths['playlist']['local']) and xbmcvfs.exists(paths['epg']['local']):
+            return {PLAYLIST_FILE_NAME: paths['playlist']['local'], epg_file_name(): paths['epg']['local']}
 
+        userdata.set('last_run', int(time.time()))
+        ################## PLAYLIST #####################
         start_time = time.time()
         database.connect()
-
         try:
-            progress = gui.progressbg() if self.forced else None
+            progress = gui.progressbg() if force else None
 
             playlists = list(Playlist.select().where(Playlist.enabled == True).order_by(Playlist.order))
             Playlist.update({Playlist.results: []}).where(Playlist.enabled == False).execute()
@@ -433,23 +440,23 @@ class Merger(object):
             for count, playlist in enumerate(playlists):
                 count += 1
 
-                if progress: progress.update(int(count*(100/len(playlists))), 'Merging Playlist ({}/{})'.format(count, len(playlists)), _(playlist.label, _bold=True))
+                if progress:
+                    progress.update(int(count*(100/len(playlists))), 'Merging Playlist ({}/{})'.format(count, len(playlists)), _(playlist.label, _bold=True))
 
                 process_took = 0
                 playlist_took = 0
-
                 error = None
                 try:
                     log.debug('Processing: {}'.format(playlist.path))
 
                     if playlist.source_type != Playlist.TYPE_CUSTOM:
                         process_start = time.time()
-                        self._process_source(playlist, METHOD_PLAYLIST, self.tmp_file)
+                        self._process_source(playlist, METHOD_PLAYLIST, paths['playlist']['source'])
                         process_took = time.time() - process_start
                         playlist_start = time.time()
                         with Channel._meta.database.atomic() as transaction:
                             try:
-                                added = self._process_playlist(playlist, self.tmp_file)
+                                added = self._process_playlist(playlist, paths['playlist']['source'])
                             except:
                                 transaction.rollback()
                                 raise
@@ -475,7 +482,7 @@ class Merger(object):
                     else:
                         playlist.results.insert(0, result)
 
-                remove_file(self.tmp_file)
+                remove_file(paths['playlist']['source'])
 
                 playlist.results = playlist.results[:3]
                 playlist.save()
@@ -484,8 +491,8 @@ class Merger(object):
             starting_ch_no = settings.getInt('start_ch_no', 1)
             groups_disabled = settings.getBool('disable_groups', False)
 
-            with codecs.open(working_path, 'w', encoding='utf8') as outfile:
-                outfile.write(u'#EXTM3U x-tvg-url="{}"\n'.format(epg_path))
+            with codecs.open(paths['playlist']['local'], 'w', encoding='utf8') as outfile:
+                outfile.write(u'#EXTM3U x-tvg-url="{}"\n'.format(paths['epg']['output']))
 
                 groups = []
                 group_order = settings.get('group_order')
@@ -545,38 +552,30 @@ class Merger(object):
 
             log.debug('Wrote {} Channels'.format(count))
             Playlist.after_merge()
-            safe_copy(working_path, playlist_path)
+            safe_copy(paths['playlist']['local'], paths['playlist']['output'])
         finally:
             database.close()
-            if progress: progress.close()
-            remove_file(self.tmp_file)
+            if progress:
+                progress.close()
+            remove_file(paths['playlist']['source'])
 
         log.debug('Playlist Merge Time: {0:.2f}'.format(time.time() - start_time))
 
-        return working_path
-
-    def epgs(self, refresh=True):
-        epg_path = os.path.join(self.output_path, epg_file_name())
-        working_path = os.path.join(self.working_path, epg_file_name())
-        epg_path_tmp = os.path.join(self.temp_path, EPG_FILE_NAME)
-
+        ################## EPG #####################
         if settings.GZ_EPG.value:
             # remove old non-gz if exists
-            remove_file(os.path.join(self.output_path, EPG_FILE_NAME))
-            remove_file(os.path.join(self.working_path, EPG_FILE_NAME))
+            remove_file(os.path.join(self.output_dir, EPG_FILE_NAME))
+            remove_file(os.path.join(self.local_dir, EPG_FILE_NAME))
         else:
             # remove old gz if exists
-            remove_file(os.path.join(self.output_path, EPG_FILE_NAME+'.gz'))
-            remove_file(os.path.join(self.working_path, EPG_FILE_NAME+'.gz'))
-
-        if not refresh and xbmcvfs.exists(epg_path) and xbmcvfs.exists(working_path):
-            return working_path
+            remove_file(os.path.join(self.output_dir, EPG_FILE_NAME+'.gz'))
+            remove_file(os.path.join(self.local_dir, EPG_FILE_NAME+'.gz'))
 
         start_time = time.time()
         database.connect()
 
         try:
-            progress = gui.progressbg() if self.forced else None
+            progress = gui.progressbg() if force else None
 
             epgs = list(EPG.select().where(EPG.enabled == True).order_by(EPG.id))
             EPG.update({EPG.start_index: 0, EPG.end_index: 0, EPG.results: []}).where(EPG.enabled == False).execute()
@@ -595,7 +594,7 @@ class Merger(object):
                         epg_urls.append(url.lower())
 
             # gzip cant seek, so must do xml first and then gz after
-            with FileIO(epg_path_tmp, "wb") as _out:
+            with FileIO(paths['epg']['build'], "wb") as _out:
                 _out.write(b'<?xml version="1.0" encoding="UTF-8"?><tv>')
 
                 for count, epg in enumerate(epgs):
@@ -607,10 +606,10 @@ class Merger(object):
                     try:
                         log.debug('Processing: {}'.format(epg.path))
                         process_start = time.time()
-                        self._process_source(epg, METHOD_EPG, self.tmp_file)
+                        self._process_source(epg, METHOD_EPG, paths['epg']['source'])
                         process_took = time.time() - process_start
                         parser_start = time.time()
-                        with FileIO(self.tmp_file, 'rb') as _in:
+                        with FileIO(paths['epg']['source'], 'rb') as _in:
                             parser = XMLParser(_out, epg_ids)
                             parser.parse(_in, epg)
                         parser_took = time.time() - parser_start
@@ -625,7 +624,7 @@ class Merger(object):
                         _seek_file(_out, start_index)
 
                         if epg.start_index > 0:
-                            if copy_partial_data(working_path, _out, epg.start_index, epg.end_index):
+                            if copy_partial_data(paths['epg']['local'], _out, epg.start_index, epg.end_index):
                                 log.debug('Last used XML data loaded successfully')
                                 epg.start_index = start_index
                                 epg.end_index = _out.tell()
@@ -644,33 +643,34 @@ class Merger(object):
                     epg.results = epg.results[:3]
                     if epg.id:
                         epg.save()
-                    remove_file(self.tmp_file)
+                    remove_file(paths['epg']['source'])
 
                 _out.write(b'</tv>')
 
             if settings.GZ_EPG.value:
-                dst = epg_path_tmp + '.gz'
-                with open(epg_path_tmp, "rb") as f_in:
+                dst = paths['epg']['build'] + '.gz'
+                with open(paths['epg']['build'], "rb") as f_in:
                     with gzip.open(dst, "wb") as f_out:
                         shutil.copyfileobj(f_in, f_out)
-                remove_file(epg_path_tmp)
-                epg_path_tmp = dst
+                remove_file(paths['epg']['build'])
+                paths['epg']['build'] = dst
 
-            remove_file(working_path)
-            shutil.move(epg_path_tmp, working_path)
-            safe_copy(working_path, epg_path)
+            remove_file(paths['epg']['local'])
+            shutil.move(paths['epg']['build'], paths['epg']['local'])
+            safe_copy(paths['epg']['local'], paths['epg']['output'])
         finally:
             database.close()
-            if progress: progress.close()
-            remove_file(self.tmp_file)
-            remove_file(epg_path_tmp)
+            if progress:
+                progress.close()
+            remove_file(paths['epg']['source'])
+            remove_file(paths['epg']['build'])
 
         log.debug('EPG Merge Time: {0:.2f}'.format(time.time() - start_time))
 
-        return working_path
+        return {PLAYLIST_FILE_NAME: paths['playlist']['local'], epg_file_name(): paths['epg']['local']}
 
 
-def restart_pvr(forced=False):
+def restart_pvr(force=False):
     if not settings.getBool('restart_pvr', False):
         return False
 
@@ -680,21 +680,21 @@ def restart_pvr(forced=False):
     except Exception as e:
         return
 
-    if forced:
+    if force:
         progress = gui.progressbg(heading='Reloading IPTV Simple Client')
 
-    if not forced and addon_version >= LooseVersion('20.8.0'):
+    if not force and addon_version >= LooseVersion('20.8.0'):
         log.info('Merge complete. IPTV Simple should reload updated playlist within 5mins')
 
     elif LooseVersion('4.3.0') <= addon_version < LooseVersion('20.8.0'):
         # IPTV Simple version 4.3.0 added auto reload on settings change
         log.info('Merge complete. IPTV Simple should reload immediately')
         addon.setSetting('m3uPathType', '0')
-        if forced:
+        if force:
             progress.update(100)
             progress.close()
 
-    elif forced or (not xbmc.getCondVisibility('Pvr.IsPlayingTv') and not xbmc.getCondVisibility('Pvr.IsPlayingRadio')):
+    elif force or (not xbmc.getCondVisibility('Pvr.IsPlayingTv') and not xbmc.getCondVisibility('Pvr.IsPlayingRadio')):
         log.info('Merge complete. Reloading IPTV Simple using legacy enable/disable method')
         kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': False})
 
@@ -702,11 +702,12 @@ def restart_pvr(forced=False):
         for i in range(wait_delay):
             if monitor.waitForAbort(1):
                 break
-            if forced: progress.update((i+1)*int(100/wait_delay))
+            if force:
+                progress.update((i+1)*int(100/wait_delay))
 
         kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': True})
 
-        if forced:
+        if force:
             progress.update(100)
             progress.close()
 

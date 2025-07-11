@@ -402,10 +402,6 @@ msgctxt "#30095"
 msgid "Disable Groups"
 msgstr ""
 
-msgctxt "#30096"
-msgid "Service Start Delay (seconds)"
-msgstr ""
-
 msgctxt "#30097"
 msgid "Hide Groups"
 msgstr ""

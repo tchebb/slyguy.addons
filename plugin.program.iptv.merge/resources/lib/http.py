@@ -4,15 +4,13 @@ import threading
 from six.moves.BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from six.moves.socketserver import ThreadingMixIn
 
-
 from slyguy import gui, log, monitor
 from slyguy.constants import CHUNK_SIZE
 from slyguy.util import check_port
 
 from .settings import settings
 from .constants import DEFAULT_HTTP_PORT, PLAYLIST_FILE_NAME, RUN_MERGE_URL
-from .merger import Merger, check_merge_required, epg_file_name, restart_pvr
-from .language import _
+from .merger import Merger, restart_pvr
 
 
 FORCE_LOCK = threading.Lock()
@@ -26,10 +24,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         path = self.path.lstrip('/').strip('\\')
-        if path == PLAYLIST_FILE_NAME:
-            return self._playlist_url()
-        elif path == epg_file_name():
-            return self._epg_url()
+
+        if path in (PLAYLIST_FILE_NAME,):
+            return self._output_merge(path)
         elif path == RUN_MERGE_URL:
             return self._run_merge()
 
@@ -38,49 +35,34 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def _run_merge(self):
         if not FORCE_LOCK.acquire(blocking=False):
-            self.send_response(200)
+            self.send_response(429)
             self.end_headers()
-            gui.notification(_.MERGE_IN_PROGRESS)
-            self.wfile.write(_.MERGE_IN_PROGRESS.encode('utf-8'))
-            return 
+            self.wfile.write(b'A merge is already running')
+            return
 
-        self.send_response(200)
-        self.end_headers()
         try:
-            progress = gui.progressbg(heading='Waiting for running PVR merge to finish')
-
+            progress = gui.progressbg(heading='Waiting for other merge to finish')
             with MERGE_LOCK:
                 progress.close()
-                merge = Merger(forced=1)
-                merge.playlists()
-                merge.epgs()
-
-            restart_pvr(forced=True)
-            self.wfile.write(b"OK")
+                settings.reset()
+                Merger().merge(force=True)
+            restart_pvr(force=True)
         finally:
             FORCE_LOCK.release()
 
-    def _playlist_url(self):
         self.send_response(200)
         self.end_headers()
+        self.wfile.write(b"OK")
+
+    def _output_merge(self, name):
         with MERGE_LOCK:
             settings.reset()
-            refresh = check_merge_required()
+            paths = Merger().merge(force=False)
 
-            merger = Merger()
-            path = merger.playlists(refresh, http_url=self.headers.get('Host'))
-            merger.epgs(refresh)
-            with open(path, 'rb') as f:
-                shutil.copyfileobj(f, self.wfile, length=CHUNK_SIZE)
-
-    def _epg_url(self):
         self.send_response(200)
         self.end_headers()
-        settings.reset()
-        with MERGE_LOCK:
-            path = Merger().epgs(refresh=False)
-            with open(path, 'rb') as f:
-                shutil.copyfileobj(f, self.wfile, length=CHUNK_SIZE)
+        with open(paths[name], 'rb') as f:
+            shutil.copyfileobj(f, self.wfile, length=CHUNK_SIZE)
 
 
 class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):

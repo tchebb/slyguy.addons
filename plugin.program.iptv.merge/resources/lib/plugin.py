@@ -1,5 +1,4 @@
 import os
-import time
 
 from kodi_six import xbmc, xbmcvfs
 from looseversion import LooseVersion
@@ -14,7 +13,7 @@ from slyguy.session import RawSession
 from .language import _
 from .models import Playlist, EPG, Channel, Override, merge_info
 from .constants import *
-from .merger import Merger
+from .merger import Merger, restart_pvr, epg_file_name
 from .settings import settings
 
 
@@ -678,41 +677,42 @@ def merge(**kwargs):
 
 
 def _run_merge():
-    # http method
-    if settings.HTTP_URL.value:
-        run_plugin(plugin.url_for(run_merge), wait=False)
-    # kodi.proxy run_merge button
-    elif not get_kodi_string('_iptv_merge_service_running'):
-        return plugin.redirect(plugin.url_for(run_merge, forced=1))
+    if settings.HTTP_URL.value or get_kodi_string('_iptv_merge_service_running'):
+        run_plugin(plugin.url_for(run_merge, force=1), wait=False)
     else:
-        # service no-http
-        if get_kodi_string('_iptv_merge_force_run'):
-            raise PluginError(_.MERGE_IN_PROGRESS)
-        set_kodi_string('_iptv_merge_force_run', '1')
+        # kodi.proxy run_merge button
+        return plugin.redirect(plugin.url_for(run_merge, force=1))
 
 
-# used by kodi.proxy
 @plugin.route()
 @plugin.merge()
-def run_merge(type='all', forced=0, **kwargs):
+def run_merge(force=0, type=None, **kwargs):
+    force = int(force)
+
     if settings.HTTP_URL.value:
-        RawSession().get(settings.HTTP_URL.value + RUN_MERGE_URL, timeout=600).raise_for_status()
+        resp = RawSession().get(settings.HTTP_URL.value + RUN_MERGE_URL, timeout=600)
+        if resp.status_code == 429:
+            raise PluginError(_.MERGE_IN_PROGRESS)
+        resp.raise_for_status()
         return
 
-    merge = Merger(forced=int(forced))
-    if type == 'playlist':
-        path = merge.playlists()
+    if get_kodi_string('_iptv_merge_running'):
+        raise PluginError(_.MERGE_IN_PROGRESS)
 
-    elif type == 'epg':
-        merge.playlists()
-        path = merge.epgs()
+    set_kodi_string('_iptv_merge_running', '1')
+    try:
+        paths = Merger().merge(force=force)
+        if force:
+            restart_pvr(force=True)
+    finally:
+        set_kodi_string('_iptv_merge_running')
 
-    elif type == 'all':
-        merge.playlists()
-        merge.epgs()
-        path = merge.output_path
-
-    return path
+    if type == 'epg':
+        return paths[epg_file_name()]
+    elif type == 'playlist':
+        return paths[PLAYLIST_FILE_NAME]
+    else:
+        return os.path.dirname(paths[PLAYLIST_FILE_NAME])
 
 
 @plugin.route()

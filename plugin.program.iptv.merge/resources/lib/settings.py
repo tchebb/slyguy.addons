@@ -28,7 +28,6 @@ class Settings(CommonSettings):
     DISABLE_GROUPS = Bool('disable_groups', _.DISABLE_GROUPS, default=False)
     GROUP_ORDER = Text('group_order', _.GROUP_ORDER, enable=lambda: not Settings.DISABLE_GROUPS.value)
 
-    SERVICE_DELAY = Number('service_delay', _.SERVICE_DELAY, default=0)
     SETUP_IPTV_SIMPLE = Action("RunPlugin(plugin://{}/?_=setup)".format(ADDON_ID), _.SETUP_IPTV_SIMPLE)
     PAGE_SIZE = Number('page_size', _.PAGE_SIZE, default=200)
     ASK_TO_ADD = Bool('ask_to_add', _.ASK_TO_ADD, default=False)
