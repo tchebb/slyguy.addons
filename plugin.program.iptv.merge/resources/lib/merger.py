@@ -12,7 +12,7 @@ from six.moves.urllib.parse import quote_plus
 
 from slyguy import database, gui, userdata, monitor
 from slyguy.log import log
-from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique, kodi_rpc
+from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique, kodi_rpc, set_kodi_string
 from slyguy.session import Session, gdrivedl
 from slyguy.constants import ADDON_PROFILE, CHUNK_SIZE
 from slyguy.exceptions import Error
@@ -671,8 +671,10 @@ class Merger(object):
 
 
 def restart_pvr(force=False):
+    set_kodi_string('_iptv_merge_restart_pvr')
+
     if not settings.getBool('restart_pvr', False):
-        return False
+        return
 
     try:
         addon = xbmcaddon.Addon(IPTV_SIMPLE_ID)
@@ -712,4 +714,6 @@ def restart_pvr(force=False):
             progress.close()
 
     else:
-        return True
+        # pending restart
+        set_kodi_string('_iptv_merge_restart_pvr', '1')
+

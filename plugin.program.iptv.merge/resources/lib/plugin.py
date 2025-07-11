@@ -702,8 +702,7 @@ def run_merge(force=0, type=None, **kwargs):
     set_kodi_string('_iptv_merge_running', '1')
     try:
         paths = Merger().merge(force=force)
-        if force:
-            restart_pvr(force=True)
+        restart_pvr(force=force)
     finally:
         set_kodi_string('_iptv_merge_running')
 
