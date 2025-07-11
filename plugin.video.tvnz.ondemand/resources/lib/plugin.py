@@ -103,7 +103,7 @@ def _process_video(data, showname, categories=None):
         info['tvshowtitle'] = showname
         info['season'] = data['seasonNumber']
         info['episode'] = data['episodeNumber']
-        if data['title'] != showname:
+        if data['title'].lower().strip() != showname.lower().strip():
             label = data['title']
 
     path = None
