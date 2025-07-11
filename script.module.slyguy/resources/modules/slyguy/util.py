@@ -105,6 +105,7 @@ def kodi_db(name):
     else:
         return None
 
+
 def async_tasks(tasks, workers=DEFAULT_WORKERS, raise_on_error=True):
     def worker():
         while not task_queue.empty():
@@ -153,6 +154,7 @@ def async_tasks(tasks, workers=DEFAULT_WORKERS, raise_on_error=True):
 
     return [x[0] for x in sorted(results, key=lambda x: x[1])]
 
+
 def get_addon(addon_id, required=False, install=True):
     try:
         try: return xbmcaddon.Addon(addon_id)
@@ -170,6 +172,7 @@ def get_addon(addon_id, required=False, install=True):
         else:
             return None
 
+
 def require_country(required=None, _raise=False):
     if not required:
         return ''
@@ -185,6 +188,7 @@ def require_country(required=None, _raise=False):
 
     return ''
 
+
 def user_country():
     try:
         country = requests.get('http://ip-api.com/json/?fields=countryCode').json()['countryCode'].upper()
@@ -193,6 +197,7 @@ def user_country():
     except:
         log.debug('Unable to get users country')
         return ''
+
 
 def FileIO(file_name, method, chunksize=CHUNK_SIZE):
     if xbmc.getCondVisibility('System.Platform.Android'):
@@ -203,6 +208,7 @@ def FileIO(file_name, method, chunksize=CHUNK_SIZE):
             return io.BufferedWriter(file_obj, buffer_size=chunksize)
     else:
         return open(file_name, method, chunksize)
+
 
 def same_file(path_a, path_b):
     if path_a.lower().strip() == path_b.lower().strip():
@@ -217,6 +223,7 @@ def same_file(path_a, path_b):
         return False
 
     return (stat_a.st_dev == stat_b.st_dev) and (stat_a.st_ino == stat_b.st_ino) and (stat_a.st_mtime == stat_b.st_mtime)
+
 
 def safe_copy(src, dst, del_src=False):
     src = xbmc.translatePath(src)
@@ -239,6 +246,7 @@ def safe_copy(src, dst, del_src=False):
     if del_src:
         xbmcvfs.delete(src)
 
+
 def gzip_extract(in_path, chunksize=CHUNK_SIZE, raise_error=True):
     log.debug('Gzip Extracting: {}'.format(in_path))
     out_path = in_path + '_extract'
@@ -258,6 +266,7 @@ def gzip_extract(in_path, chunksize=CHUNK_SIZE, raise_error=True):
         remove_file(in_path)
         shutil.move(out_path, in_path)
         return True
+
 
 def xz_extract(in_path, chunksize=CHUNK_SIZE, raise_error=True):
     if PY2:
@@ -284,6 +293,7 @@ def xz_extract(in_path, chunksize=CHUNK_SIZE, raise_error=True):
         shutil.move(out_path, in_path)
         return True
 
+
 def load_json(filepath, encoding='utf8', raise_error=True):
     try:
         with codecs.open(filepath, 'r', encoding='utf8') as f:
@@ -293,6 +303,7 @@ def load_json(filepath, encoding='utf8', raise_error=True):
             raise
         else:
             return False
+
 
 def save_json(filepath, data, raise_error=True, pretty=False, **kwargs):
     _kwargs = {'ensure_ascii': False}
@@ -318,24 +329,30 @@ def save_json(filepath, data, raise_error=True, pretty=False, **kwargs):
         else:
             return False
 
+
 def jwt_data(token):
     b64_string = token.split('.')[1]
     b64_string += "=" * ((4 - len(b64_string) % 4) % 4) #fix padding
     return json.loads(base64.b64decode(b64_string))
 
+
 def set_kodi_string(key, value=''):
     xbmcgui.Window(10000).setProperty(key, u"{}".format(value))
+
 
 def get_kodi_string(key, default=''):
     value = xbmcgui.Window(10000).getProperty(key)
     return value or default
 
+
 def get_kodi_setting(key, default=None):
     data = kodi_rpc('Settings.GetSettingValue', {'setting': key})
     return data.get('value', default)
 
+
 def set_kodi_setting(key, value):
     return kodi_rpc('Settings.SetSettingValue', {'setting': key, 'value': value})
+
 
 def kodi_rpc(method, params=None, raise_on_error=False):
     try:
@@ -355,14 +372,12 @@ def kodi_rpc(method, params=None, raise_on_error=False):
         else:
             return {}
 
+
 def remove_file(file_path):
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-    except:
+    if xbmcvfs.exists(file_path) and not xbmcvfs.delete(file_path):
         return False
-    else:
-        return True
+    return True
+
 
 def hash_6(value, default=None, length=6):
     if not value:
@@ -371,11 +386,12 @@ def hash_6(value, default=None, length=6):
     h = hashlib.md5(u'{}'.format(value).encode('utf8'))
     return base64.b64encode(h.digest()).decode('utf8')[:length]
 
+
 def md5sum(filepath):
     if not os.path.exists(filepath):
         return None
-
     return hashlib.md5(open(filepath,'rb').read()).hexdigest()
+
 
 ## to find BCOV-POLICY. Open below url
 ## account_id / player_id / videoid can be found by right clicking player and selecting Player Information
@@ -759,11 +775,6 @@ def get_kodi_proxy():
     return proxy_address
 
 
-def unique(sequence):
-    seen = set()
-    return [x for x in sequence if not (x in seen or seen.add(x))]
-
-
 def get_url_headers(headers=None, cookies=None):
     string = ''
     if headers:
@@ -801,3 +812,7 @@ def makedirs(path):
 def remove_duplicates(seq):
     seen = set()
     return [x for x in seq if not (x in seen or seen.add(x))]
+
+
+def unique(sequence):
+    return remove_duplicates(sequence)
