@@ -1,6 +1,5 @@
 from slyguy import router, monitor
 from slyguy.util import get_kodi_string, set_kodi_string, run_plugin
-from slyguy.log import log
 from slyguy.exceptions import Error
 
 from .merger import check_merge_required, restart_pvr

@@ -12,7 +12,7 @@ from six.moves.urllib.parse import quote_plus
 
 from slyguy import database, gui, userdata, monitor
 from slyguy.log import log
-from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique, kodi_rpc, set_kodi_string
+from slyguy.util import remove_file, hash_6, FileIO, gzip_extract, xz_extract, run_plugin, safe_copy, unique, restart_service, set_kodi_string
 from slyguy.session import Session, gdrivedl
 from slyguy.constants import ADDON_PROFILE, CHUNK_SIZE
 from slyguy.exceptions import Error
@@ -698,17 +698,7 @@ def restart_pvr(force=False):
 
     elif force or (not xbmc.getCondVisibility('Pvr.IsPlayingTv') and not xbmc.getCondVisibility('Pvr.IsPlayingRadio')):
         log.info('Merge complete. Reloading IPTV Simple using legacy enable/disable method')
-        kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': False})
-
-        wait_delay = 4
-        for i in range(wait_delay):
-            if monitor.waitForAbort(1):
-                break
-            if force:
-                progress.update((i+1)*int(100/wait_delay))
-
-        kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': True})
-
+        restart_service(IPTV_SIMPLE_ID, delay=4)
         if force:
             progress.update(100)
             progress.close()
@@ -716,4 +706,3 @@ def restart_pvr(force=False):
     else:
         # pending restart
         set_kodi_string('_iptv_merge_restart_pvr', '1')
-
