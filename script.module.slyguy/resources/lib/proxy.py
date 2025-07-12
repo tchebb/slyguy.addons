@@ -1634,4 +1634,4 @@ class Proxy(object):
             log.exception(e)
 
         settings.set('_proxy_path', '')
-        log.debug("Proxy: Stopped")
+        log.debug("Proxy Stopped")

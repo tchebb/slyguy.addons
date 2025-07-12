@@ -8,7 +8,7 @@ from slyguy import dialog, signals
 from slyguy.language import _
 from slyguy.log import log
 from slyguy.constants import *
-from slyguy.util import get_kodi_string, set_kodi_string, kodi_rpc, get_qr_img
+from slyguy.util import get_kodi_string, set_kodi_string, get_qr_img, restart_service
 
 from .types import BaseSettings, Bool, Dict, Number, Text, Enum, Categories, Action, STORAGE
 
@@ -79,11 +79,6 @@ def hdcp_level():
         return int(get_kodi_string('hdcp_level', HDCP_NONE))
     else:
         return hdcp_level
-
-
-def restart_service():
-    kodi_rpc('Addons.SetAddonEnabled', {'addonid': COMMON_ADDON_ID, 'enabled': False})
-    kodi_rpc('Addons.SetAddonEnabled', {'addonid': COMMON_ADDON_ID, 'enabled': True})
 
 
 def check_donor(force=False):
@@ -319,7 +314,8 @@ class CommonSettings(BaseSettings):
     # SYSTEM
     FAST_UPDATES = Bool('fast_updates', default=True, enable=is_donor, disabled_value=False, disabled_reason=_.SUPPORTER_ONLY, override=False, owner=COMMON_ADDON_ID, category=Categories.SYSTEM)
     PROXY_ENABLED = Bool('proxy_enabled', default=True, before_save=lambda val: val or dialog.yes_no(_.CONFIRM_DISABLE_PROXY), owner=COMMON_ADDON_ID, category=Categories.SYSTEM)
-    PROXY_PORT = Number('proxy_port', default=None, default_label=_.AUTO, override=False, visible=lambda: settings.PROXY_ENABLED.value, owner=COMMON_ADDON_ID, after_save=lambda val: restart_service(), after_clear=restart_service, category=Categories.SYSTEM)
+    PROXY_PORT = Number('proxy_port', default=None, default_label=_.AUTO, override=False, visible=lambda: settings.PROXY_ENABLED.value, owner=COMMON_ADDON_ID,
+            after_save=lambda val: restart_service(COMMON_ADDON_ID), after_clear=lambda: restart_service(COMMON_ADDON_ID), category=Categories.SYSTEM)
 
     # ROOT
     DONOR_ID = Donor('donor_id', override=False, confirm_clear=True, owner=COMMON_ADDON_ID, category=Categories.ROOT, image=get_qr_img(SUPPORT_URL))

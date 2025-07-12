@@ -2,6 +2,7 @@ import os
 import sys
 import hashlib
 import shutil
+import time
 import platform
 import base64
 import struct
@@ -28,9 +29,25 @@ else:
     from six.moves.html_parser import HTMLParser
     html = HTMLParser()
 
-from slyguy import log, router, _
+from slyguy import log, router, monitor, _
 from slyguy.exceptions import Error
 from slyguy.constants import *
+
+
+def restart_service(addon_id=ADDON_ID, delay=4):
+    try:
+        kodi_rpc('Addons.SetAddonEnabled', {'addonid': addon_id, 'enabled': False})
+        sleep(delay) # time for service to finish
+    finally:
+        kodi_rpc('Addons.SetAddonEnabled', {'addonid': addon_id, 'enabled': True})
+
+
+def sleep(seconds):
+    end = time.time() + seconds
+    while time.time() < end:
+        if monitor.abortRequested():
+            break
+        time.sleep(0.1)
 
 
 def remove_kodi_formatting(title):
