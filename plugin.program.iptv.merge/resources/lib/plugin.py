@@ -547,9 +547,10 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
     is_multi_instance = LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('20.8.0')
     instance_filepath = os.path.join(addon_path, 'instance-settings-1.xml')
 
+    epg_path = ''
     if settings.HTTP_URL.value:
-        if not LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1'):
-            raise PluginError("HTTP method requires PVR Simple version 21.7.1 or newer. You can disable HTTP method in the add-on settings")
+        if not check_only and not LooseVersion(addon.getAddonInfo('version')) >= LooseVersion('21.7.1'):
+            raise PluginError("HTTP API requires PVR Simple version 21.7.1 or newer. You can disable HTTP API in this add-on settings")
         playlist_path = settings.HTTP_URL.value + PLAYLIST_FILE_NAME
         path_type = '1'
     else:
@@ -570,9 +571,13 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
             and 'id="m3uPath">{}</setting>'.format(playlist_path) in data and 'id="m3uUrl">{}</setting>'.format(playlist_path) \
             and 'id="epgPath" default="true"' in data and 'id="epgUrl" default="true"' in data
     else:
+        # if not epg x-tvg-url support, then we need to set epg path
+        if LooseVersion(addon.getAddonInfo('version')) < LooseVersion('4.8.0'):
+            epg_path = os.path.join(output_dir, epg_file_name())
+
         is_setup = addon.getSetting('m3uPathType') == path_type \
                     and addon.getSetting('m3uPath') == playlist_path and addon.getSetting('m3uUrl') == playlist_path \
-                    and addon.getSetting('epgPath') == '' and addon.getSetting('epgUrl') == ''
+                    and addon.getSetting('epgPath') == epg_path and addon.getSetting('epgUrl') == epg_path
 
     if check_only:
         return is_setup
@@ -608,12 +613,12 @@ def _setup(check_only=False, reinstall=True, run_merge=True):
             except: pass
         ################################
 
-        addon.setSetting('epgPath', '')
+        addon.setSetting('epgPath', epg_path or ' ') # need to use ' ' to wipe setting
         addon.setSetting('m3uPath', playlist_path)
-        addon.setSetting('epgUrl', '')
+        addon.setSetting('epgUrl', epg_path or ' ')
         addon.setSetting('m3uUrl', playlist_path)
         addon.setSetting('m3uPathType', path_type)
-        addon.setSetting('epgPathType', '')
+        addon.setSetting('epgPathType', path_type)
 
         # newer PVR Simple uses instance settings that can't yet be set via python api
         # so do a workaround where we leverage the migration when no instance settings found
