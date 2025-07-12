@@ -139,7 +139,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def handle(self):
         try:
-            super(RequestHandler, self).handle()
+            BaseHTTPRequestHandler.handle(self)
         except Exception as e:
             log.error("PROXY ERROR: {}".format(e))
             self.send_response(204) # stop retries
