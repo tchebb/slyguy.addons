@@ -32,7 +32,6 @@ class Settings(CommonSettings):
 
     HTTP_METHOD = Bool('http_method', _.HTTP_METHOD, default=KODI_VERSION >= 21, after_save=lambda val: restart_service(), after_clear=restart_service)
     HTTP_PORT = Number('http_port', _.HTTP_PORT, default=None, default_label=_.AUTO, after_save=lambda val: restart_service(), after_clear=restart_service, parent=HTTP_METHOD)
-    HTTP_QUIET_BOOT = Bool('http_quiet_boot', _.HTTP_QUIET_BOOT, default=True, parent=HTTP_METHOD)
     HTTP_URL = Text('http_url', visible=False)
 
 

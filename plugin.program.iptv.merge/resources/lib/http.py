@@ -6,10 +6,10 @@ from six.moves.socketserver import ThreadingMixIn
 
 from slyguy import gui, log, monitor
 from slyguy.constants import CHUNK_SIZE
-from slyguy.util import check_port, kodi_rpc, sleep
+from slyguy.util import check_port
 
 from .settings import settings
-from .constants import DEFAULT_HTTP_PORT, PLAYLIST_FILE_NAME, RUN_MERGE_URL, IPTV_SIMPLE_ID
+from .constants import DEFAULT_HTTP_PORT, PLAYLIST_FILE_NAME, RUN_MERGE_URL
 from .merger import Merger, restart_pvr
 
 
@@ -70,44 +70,31 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 
 def serve_forever():
-    if settings.HTTP_QUIET_BOOT.value:
-        # PVR starts and tries to load our http which fails
-        # We disable the service, start our http and then enable the service
-        # It then does no retries for the http url and therefore no notification
-        kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': False})
-        # enougth time for the current http request to timeout
-        sleep(1.5)
+    port = settings.HTTP_PORT.value
+    if port is None:
+        port = check_port(DEFAULT_HTTP_PORT)
+        if not port:
+            port = check_port()
+            log.warning('Port {} not available. Switched to port {}'.format(DEFAULT_HTTP_PORT, port))
 
     try:
-        port = settings.HTTP_PORT.value
-        if port is None:
-            port = check_port(DEFAULT_HTTP_PORT)
-            if not port:
-                port = check_port()
-                log.warning('Port {} not available. Switched to port {}'.format(DEFAULT_HTTP_PORT, port))
+        server = ThreadedHTTPServer(('0.0.0.0', port), RequestHandler)
+    except Exception as e:
+        log.exception(e)
+        settings.HTTP_URL.clear()
+        error = 'Unable to start HTTP Server on port: {}. You can change port under IPTV Merge -> Settings -> Add-on'.format(port)
+        log.error(error)
+        gui.error(error)
+        return
 
-        try:
-            server = ThreadedHTTPServer(('0.0.0.0', port), RequestHandler)
-        except Exception as e:
-            log.exception(e)
-            settings.HTTP_URL.clear()
-            error = 'Unable to start HTTP Server on port: {}. You can change port under IPTV Merge -> Settings -> Add-on'.format(port)
-            log.error(error)
-            gui.error(error)
-            return
+    settings.HTTP_PORT.store_value(port)
+    server.allow_reuse_address = True
+    httpd_thread = threading.Thread(target=server.serve_forever)
+    httpd_thread.start()
 
-        settings.HTTP_PORT.store_value(port)
-        server.allow_reuse_address = True
-        httpd_thread = threading.Thread(target=server.serve_forever)
-        httpd_thread.start()
-
-        http_path = 'http://{}:{}/'.format('127.0.0.1', port)
-        settings.HTTP_URL.value = http_path
-        log.info("HTTP Server Started: {}".format(http_path))
-    finally:
-        if settings.HTTP_QUIET_BOOT.value:
-            sleep(0.5) # make sure http ready to accept. worse case itll retry and show notification
-            kodi_rpc('Addons.SetAddonEnabled', {'addonid': IPTV_SIMPLE_ID, 'enabled': True})
+    http_path = 'http://{}:{}/'.format('127.0.0.1', port)
+    settings.HTTP_URL.value = http_path
+    log.info("HTTP Server Started: {}".format(http_path))
 
     try:
         monitor.waitForAbort()

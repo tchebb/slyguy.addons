@@ -105,7 +105,6 @@ class Language(BaseLanguage):
     DEFAULT_USER_AGENT     = 30102
     HTTP_METHOD            = 30103
     HTTP_PORT              = 30104
-    HTTP_QUIET_BOOT        = 30105
 
 
 _ = Language()

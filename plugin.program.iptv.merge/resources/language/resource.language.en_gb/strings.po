@@ -433,7 +433,3 @@ msgstr ""
 msgctxt "#30104"
 msgid "Port Number"
 msgstr ""
-
-msgctxt "#30105"
-msgid "Quiet Boot (No connect notification)"
-msgstr ""
