@@ -152,7 +152,7 @@ def _parse_movie(row):
         info = {
             'plot': row['contentItem']['summary'],
             'year': row['contentItem']['year'],
-            'duration': row['contentItem']['duration']*60,
+            'duration': (row['contentItem'].get('duration') or 0) * 60,
             'mediatype': 'movie',
         },
         art = {
@@ -228,7 +228,7 @@ def _parse_episodes(show, season):
             info = {
                 'title': episode['title'],
                 'plot': episode['description'],
-                'duration': episode['duration']*60,
+                'duration': (episode.get('duration') or 0) * 60,
                 'tvshowtitle': show['title'],
                 'mediatype': 'episode',
                 'season' : int(episode['seasonNumber']),
