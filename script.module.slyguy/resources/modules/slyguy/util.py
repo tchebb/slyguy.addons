@@ -68,7 +68,18 @@ def run_plugin(path, wait=True, check=True):
         if not check:
             return files
 
-        data = json.loads(unquote_plus(files[0]))
+        content = unquote_plus(files[0])
+        if not content:
+            raise Error('No result returned')
+
+        if content[0] in ('1', '0'):
+            # legacy return data
+            result, msg = int(content[0]), content[1:]
+            if not result:
+                raise Error(msg)
+            return msg
+
+        data = json.loads(content)
         if data.get('error'):
             raise Error(data['error'])
         if 'result' not in data:
