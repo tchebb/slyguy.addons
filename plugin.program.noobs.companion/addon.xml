@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<addon id="plugin.program.noobs.companion" name="NOOBS Companion" provider-name="SlyGuy" version="0.7.7">
+<addon id="plugin.program.noobs.companion" name="NOOBS Companion [REMOVED]" provider-name="SlyGuy" version="0.8.0">
   <requires>
     <import addon="script.module.slyguy" version="0.63.1"/>
   </requires>
@@ -8,11 +8,11 @@
   </extension>
   <extension point="xbmc.addon.metadata">
     <platform></platform>
-    <description lang="en">Allows easy booting between other installed NOOBS / PINN systems (Raspberry Pi Only)</description>
+    <description lang="en">This add-on is no longer supported and will be removed soon</description>
     <license></license>
     <language></language>
     <website></website>
-    <news>Fix Recalbox bootback</news>
+    <news>This add-on is no longer supported and will be removed soon</news>
     <assets>
       <icon>icon.png</icon>
       <fanart>fanart.jpg</fanart>
