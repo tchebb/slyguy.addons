@@ -76,7 +76,9 @@ def _li_to_item(li):
                 break
     else:
         item.info['genre'] = vid_tag.getGenre()
-        item.info['unique_id'] = {'type': None, 'id': vid_tag.getIMDBNumber()}
+        id = vid_tag.getIMDBNumber() or ''
+        id_type = 'imdb' if id.lower().startswith('tt') else None
+        item.info['unique_id'] = {'type': id_type, 'id': id}
 
     return item
 
@@ -89,10 +91,13 @@ def _rpc_to_item(data):
     item.label = title
     item.info = {
         'title': title,
-        'clean_title': clean_title,
         'trailer': data['trailer'],
         'year': data['year'],
         'mediatype': 'movie' if 'movieid' in data else 'tvshow',
+        'dir': None,
+        'filename': None,
+        'clean_title': clean_title,
+        'unique_id': {},
     }
 
     if item.info['mediatype'] == 'movie':
@@ -109,77 +114,11 @@ def _rpc_to_item(data):
                 item.info['unique_id'] = {'type': id_type, 'id': unique_id}
                 break
     else:
-        item.info['unique_id'] = {'type': None, 'id': data.get('imdbnumber')}
+        id = data.get('imdbnumber') or ''
+        id_type = 'imdb' if id.lower().startswith('tt') else None
+        item.info['unique_id'] = {'type': id_type, 'id': id}
 
     return item
-
-
-def _find_content_from_trailer(trailer):
-    trailer = trailer.lower()
-    if not trailer:
-        return []
-
-    results = []
-    rows = kodi_rpc('VideoLibrary.GetMovies', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['movies']
-    for row in rows:
-        if trailer in row["trailer"].lower():
-            results.append(kodi_rpc('VideoLibrary.GetMovieDetails', {'movieid': row['movieid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['moviedetails'])
-
-    if not results and KODI_VERSION >= 22:
-        # Kodi 22 supports show trailer filter: https://github.com/xbmc/xbmc/pull/26719
-        rows = kodi_rpc('VideoLibrary.GetTvShows', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['tvshows']
-        for row in rows:
-            if trailer in row["trailer"].lower():
-                results.append(kodi_rpc('VideoLibrary.GetTvShowDetails', {'tvshowid': row['tvshowid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['tvshowdetails'])
-
-    return [_rpc_to_item(result) for result in results]
-
-
-def _get_local_trailer(item):
-    if item.info['mediatype'] == 'movie' and item.info['filename'] and settings.TRAILER_LOCAL.value:
-        filename = os.path.splitext(item.info['filename'])[0].lower()
-        files = xbmcvfs.listdir(item.info['dir'])[1]
-        for file in files:
-            name, ext = os.path.splitext(file.lower())
-            if name in ('movie-trailer', "{}-trailer".format(filename)):
-                item.path = os.path.join(item.info['dir'], file)
-                if ext == '.txt':
-                    with xbmcvfs.File(item.path) as f:
-                        item.path = _get_trailer_path(f.read().strip())
-                return
-
-    elif item.info['mediatype'] == 'tvshow' and item.info['dir'] and settings.TRAILER_LOCAL.value:
-        folder_name = os.path.basename(item.info['dir']).lower()
-        files = xbmcvfs.listdir(item.info['dir'])[1]
-        for file in files:
-            name, ext = os.path.splitext(file.lower())
-            if name in ('tvshow-trailer', "{}-trailer".format(folder_name)):
-                item.path = os.path.join(item.info['dir'], file)
-                if ext == '.txt':
-                    with xbmcvfs.File(item.path) as f:
-                        item.path = _get_trailer_path(f.read().strip())
-                return
-
-
-def _get_imdb_trailer(item):
-    if not settings.TRAILER_IMDB.value:
-        return
-
-    media_type = item.info['mediatype']
-    id = item.info['unique_id'].get('id')
-    id_type = item.info['unique_id'].get('type')
-    if not id or media_type == 'tvshow' and not settings.TRAILER_IMDB_TV.value:
-        return
-
-    if id_type != 'imdb':
-        try:
-            imdb_id = mdblist_api.get_media(media_type, id, id_type)['ids']['imdb']
-        except KeyError:
-            return
-    else:
-        imdb_id = id
-
-    item.path = plugin.url_for(imdb, video_id=imdb_id)
 
 
 @plugin.route('/redirect')
@@ -204,51 +143,130 @@ def context_trailer(listitem, **kwargs):
     return _process_item(item)
 
 
-def _process_item(item, notify=True):
-    if settings.IGNORE_SCRAPED.value:
-        item.info['trailer'] == ''
+def _require_addon(url):
+    parsed = urlparse(url)
+    if parsed.scheme.lower() == 'plugin' and parsed.netloc != ADDON_ID:
+        get_addon(parsed.netloc, install=True, required=True)
 
-    _get_local_trailer(item)
-    if item.path:
-        return item
 
-    _get_imdb_trailer(item)
-    if item.path:
-        return item
+def _process_item(item):
+    # check local trailer first
+    if settings.TRAILER_LOCAL.value:
+        item.path = _get_local_trailer(
+            mediatype = item.info['mediatype'],
+            dir = item.info['dir'],
+            filename = item.info['filename'],
+        )
+        if item.path:
+            _require_addon(item.path)
+            return item
 
-    item.path = _get_trailer_path(item.info['trailer'])
+    # scraped trailer
+    if not settings.IGNORE_SCRAPED.value:
+        item.path = _get_trailer_path(path=item.info['trailer'])
+        if item.path:
+            _require_addon(item.path)
+            return item
 
-    if not item.path and settings.MDBLIST.value:
-        item.path = _unique_id_mdblist_trailer(
-            media_type = item.info['mediatype'],
+    # if no unique id, try mdblist search by title/year
+    if not item.info['unique_id'].get('id') and settings.MDBLIST_SEARCH.value:
+        item.info['unique_id'] = _search_mdblist_for_id(
+            mediatype = item.info['mediatype'],
+            title = item.info['clean_title'],
+            year = item.info['year'],
+        ) or {}
+
+    # IMDB trailer
+    if settings.TRAILER_IMDB.value:
+        item.path = _get_imdb_trailer(
+            mediatype = item.info['mediatype'],
             id = item.info['unique_id'].get('id'),
             id_type = item.info['unique_id'].get('type'),
         )
-        if not item.path and settings.MDBLIST_SEARCH.value:
-            item.path = _search_mdblist_trailer(
-                media_type = item.info['mediatype'],
-                title = item.info['clean_title'],
-                year = item.info['year'],
-            )
+        if item.path:
+            return item
 
-    if not item.path:
-        if notify:
-            gui.notification(_.TRAILER_NOT_FOUND)
+    # mdblist YouTube trailer
+    if settings.MDBLIST.value:
+        item.path = _get_mdblist_trailer(
+            mediatype = item.info['mediatype'],
+            id = item.info['unique_id'].get('id'),
+            id_type = item.info['unique_id'].get('type'),
+        )
+        if item.path:
+            return item
+
+    gui.notification(_.TRAILER_NOT_FOUND)
+
+
+def _find_content_from_trailer(trailer):
+    trailer = trailer.lower()
+    if not trailer:
+        return []
+
+    results = []
+    rows = kodi_rpc('VideoLibrary.GetMovies', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['movies']
+    for row in rows:
+        if trailer in row["trailer"].lower():
+            results.append(kodi_rpc('VideoLibrary.GetMovieDetails', {'movieid': row['movieid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['moviedetails'])
+
+    if not results and KODI_VERSION >= 22:
+        # Kodi 22 supports show trailer filter: https://github.com/xbmc/xbmc/pull/26719
+        rows = kodi_rpc('VideoLibrary.GetTvShows', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['tvshows']
+        for row in rows:
+            if trailer in row["trailer"].lower():
+                results.append(kodi_rpc('VideoLibrary.GetTvShowDetails', {'tvshowid': row['tvshowid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['tvshowdetails'])
+
+    return [_rpc_to_item(result) for result in results]
+
+
+def _get_local_trailer(mediatype, dir=None, filename=None):
+    if mediatype == 'movie' and filename:
+        filename = os.path.splitext(filename)[0].lower()
+        files = xbmcvfs.listdir(dir)[1]
+        for file in files:
+            name, ext = os.path.splitext(file.lower())
+            if name in ('movie-trailer', "{}-trailer".format(filename)):
+                path = os.path.join(dir, file)
+                if ext == '.txt':
+                    with xbmcvfs.File(path) as f:
+                        path = _get_trailer_path(f.read().strip())
+                return path
+
+    elif mediatype == 'tvshow' and dir:
+        folder_name = os.path.basename(dir).lower()
+        files = xbmcvfs.listdir(dir)[1]
+        for file in files:
+            name, ext = os.path.splitext(file.lower())
+            if name in ('tvshow-trailer', "{}-trailer".format(folder_name)):
+                path = os.path.join(dir, file)
+                if ext == '.txt':
+                    with xbmcvfs.File(path) as f:
+                        path = _get_trailer_path(f.read().strip())
+                return path
+
+
+def _get_imdb_trailer(mediatype, id, id_type=None):
+    if not mediatype or not id or (mediatype == 'tvshow' and not settings.TRAILER_IMDB_TV.value):
         return
 
-    parsed = urlparse(item.path)
-    if parsed.scheme.lower() == 'plugin':
-        get_addon(parsed.netloc, install=True, required=True)
+    if id_type != 'imdb':
+        try:
+            imdb_id = mdblist_api.get_media(mediatype, id, id_type)['ids']['imdb']
+        except KeyError:
+            return
+    else:
+        imdb_id = id
 
-    return item
+    return plugin.url_for(imdb, video_id=imdb_id)
 
 
-def _search_mdblist_trailer(media_type, title, year):
-    if not media_type or not title or not year:
+def _search_mdblist_for_id(mediatype, title, year):
+    if not mediatype or not title or not year:
         return
 
-    log.debug("mdblist search for: {} '{}' ({})".format(media_type, title, year))
-    results = mdblist_api.search_media(media_type, title, year, limit=10)
+    log.debug("mdblist search for: {} '{}' ({})".format(mediatype, title, year))
+    results = mdblist_api.search_media(mediatype, title, year, limit=10)
     title = "{} {}".format(title.lower().strip().replace(' ', ''), year)
     for result in results:
         result['ratio'] = SequenceMatcher(None, title, "{} {}".format(result['title'].lower().strip().replace(' ', ''), result['year'])).ratio()
@@ -263,23 +281,17 @@ def _search_mdblist_trailer(media_type, title, year):
     if not results[0].get('ids'):
         return
 
-    unique_id = {}
     for id_type in ('imdb', 'tvdb', 'tmdb'):
         id = results[0]['ids'].get(id_type) or results[0]['ids'].get(id_type+'id')
         if id:
-            unique_id = {'type': id_type, 'id': id}
-            break
-
-    # TODO: Could play IMDB trailer
-    # if uniqe_id.get('type') == 'imdb':
-    return _unique_id_mdblist_trailer(media_type, unique_id['id'], id_type=unique_id['type'])
+            return {'type': id_type, 'id': id}
 
 
-def _unique_id_mdblist_trailer(media_type, id, id_type=None):
-    if not media_type or not id:
+def _get_mdblist_trailer(mediatype, id, id_type=None):
+    if not mediatype or not id:
         return
 
-    data = mdblist_api.get_media(media_type, id, id_type=id_type)
+    data = mdblist_api.get_media(mediatype, id, id_type=id_type)
     trailer = _get_trailer_path(data.get('trailer'))
     if ADDON_ID in trailer:
         log.info("mdblist trailer: {}".format(trailer))
@@ -287,25 +299,37 @@ def _unique_id_mdblist_trailer(media_type, id, id_type=None):
 
 
 @plugin.route('/by_unique_id')
-def by_unique_id(media_type, id, id_type=None, force=0, **kwargs):
-    force = int(force)
-    if force or settings.MDBLIST.value:
-        with gui.busy():
-            trailer = _unique_id_mdblist_trailer(media_type, id, id_type)
-            if trailer:
-                return play_youtube(get_youtube_id(trailer))
-    gui.notification(_.TRAILER_NOT_FOUND)
+def by_unique_id(mediatype, id, id_type=None, **kwargs):
+    item = plugin.Item()
+    item.label = ''
+    item.info = {
+        'title': '',
+        'trailer': '',
+        'year': '',
+        'mediatype': mediatype,
+        'dir': None,
+        'filename': None,
+        'clean_title': '',
+        'unique_id': {'type': id_type, 'id': id},
+    }
+    return _process_item(item)
 
 
 @plugin.route('/by_title_year')
-def by_title_year(media_type, title, year, force=0, **kwargs):
-    force = int(force)
-    if force or (settings.MDBLIST.value and settings.MDBLIST_SEARCH.value):
-        with gui.busy():
-            trailer = _search_mdblist_trailer(media_type, title, year)
-            if trailer:
-                return play_youtube(get_youtube_id(trailer))
-    gui.notification(_.TRAILER_NOT_FOUND)
+def by_title_year(mediatype, title, year, **kwargs):
+    item = plugin.Item()
+    item.label = title
+    item.info = {
+        'title': title,
+        'trailer': '',
+        'year': year,
+        'mediatype': mediatype,
+        'dir': None,
+        'filename': None,
+        'clean_title': title,
+        'unique_id': {},
+    }
+    return _process_item(item)
 
 
 @plugin.route('/play')
@@ -326,10 +350,10 @@ def test_streams(**kwargs):
         ['YouTube 4K', plugin.url_for(play_yt, video_id='Q82tQJyJwgk')],
         ['YouTube 4K HDR', plugin.url_for(play_yt, video_id='tO01J-M3g0U')],
         ['IMDB', plugin.url_for(imdb, video_id='tt10548174')],
-        ['Show tvdb id -> mdblist -> YouTube', plugin.url_for(by_unique_id, media_type='tvshow', id='392256', id_type='tvdb', force=1)],
-        ['Movie imdb id -> mdblist -> YouTube', plugin.url_for(by_unique_id, media_type='movie', id='tt0133093', id_type='imdb', force=1)],
-        ['Show Title / Year -> mdblist -> YouTube', plugin.url_for(by_title_year, media_type='tvshow', title='The Last of Us', year='2023', force=1)],
-        ['Movie Title / Year -> mdblist -> YouTube', plugin.url_for(by_title_year, media_type='movie', title='The Matrix', year='1999', force=1)],
+        ['Movie imdb id -> mdblist', plugin.url_for(by_unique_id, mediatype='movie', id='tt0133093', id_type='imdb')],
+        ['Movie Title / Year -> mdblist', plugin.url_for(by_title_year, mediatype='movie', title='The Matrix', year='1999')],
+        ['Show tvdb id -> mdblist', plugin.url_for(by_unique_id, mediatype='tvshow', id='392256', id_type='tvdb')],
+        ['Show Title / Year -> mdblist', plugin.url_for(by_title_year, mediatype='tvshow', title='The Last of Us', year='2023')],
     ]
 
     folder = plugin.Folder(_.TEST_STREAMS, content=None)

@@ -62,15 +62,15 @@ msgid "Test Streams"
 msgstr ""
 
 msgctxt "#30018"
-msgid "Use mdblist API if no media trailer"
+msgid "Find YouTube trailer with mdblist API if no scraped trailer"
 msgstr ""
 
 msgctxt "#30020"
-msgid "Search by title / year if no unique ID"
+msgid "Search mdblist API by title / year if no unique ID"
 msgstr ""
 
 msgctxt "#30021"
-msgid "Allow local trailers"
+msgid "Look for local trailer"
 msgstr ""
 
 msgctxt "#30022"
@@ -91,7 +91,7 @@ msgid "Tubed add-on"
 msgstr ""
 
 msgctxt "#30026"
-msgid "Use IMDB Trailer"
+msgid "Find IMDB trailer if no scraped trailer"
 msgstr ""
 
 msgctxt "#30027"
