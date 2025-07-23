@@ -102,3 +102,7 @@ msgctxt "#30028"
 msgid "Failed mdblist search: {error}\n"
 "Searched for {mediatype} '{title}' ({year})"
 msgstr ""
+
+msgctxt "#30029"
+msgid "Ignore scraped trailer"
+msgstr ""

@@ -21,11 +21,7 @@ mdblist_api = API()
 
 @plugin.route('/')
 def home(**kwargs):
-    video_id = get_youtube_id(kwargs['_url'])
-    if video_id:
-        return plugin.url_for(play_yt, video_id=video_id)
-    else:
-        return plugin.url_for(ROUTE_SETTINGS)
+    return plugin.url_for(ROUTE_SETTINGS)
 
 
 def _get_trailer_path(path):
@@ -85,6 +81,39 @@ def _li_to_item(li):
     return item
 
 
+def _rpc_to_item(data):
+    clean_title = remove_kodi_formatting(data.get('title') or data.get('label'))
+    title = u"{} ({})".format(clean_title, _.TRAILER)
+
+    item = plugin.Item()
+    item.label = title
+    item.info = {
+        'title': title,
+        'clean_title': clean_title,
+        'trailer': data['trailer'],
+        'year': data['year'],
+        'mediatype': 'movie' if 'movieid' in data else 'tvshow',
+    }
+
+    if item.info['mediatype'] == 'movie':
+        path = data['file']
+        item.info['dir'] = os.path.dirname(path)
+        item.info['filename'] = os.path.basename(path)
+    elif item.info['mediatype'] == 'tvshow':
+        item.info['dir'] = os.path.dirname(data['file'])
+
+    if KODI_VERSION >= 20:
+        for id_type in ('imdb', 'tvdb', 'tmdb'):
+            unique_id = data.get('uniqueid', {}).get(id_type)
+            if unique_id:
+                item.info['unique_id'] = {'type': id_type, 'id': unique_id}
+                break
+    else:
+        item.info['unique_id'] = {'type': None, 'id': data.get('imdbnumber')}
+
+    return item
+
+
 def _find_content_from_trailer(trailer):
     trailer = trailer.lower()
     if not trailer:
@@ -97,13 +126,13 @@ def _find_content_from_trailer(trailer):
             results.append(kodi_rpc('VideoLibrary.GetMovieDetails', {'movieid': row['movieid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['moviedetails'])
 
     if not results and KODI_VERSION >= 22:
-        # https://github.com/xbmc/xbmc/pull/26719
+        # Kodi 22 supports show trailer filter: https://github.com/xbmc/xbmc/pull/26719
         rows = kodi_rpc('VideoLibrary.GetTvShows', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['tvshows']
         for row in rows:
             if trailer in row["trailer"].lower():
                 results.append(kodi_rpc('VideoLibrary.GetTvShowDetails', {'tvshowid': row['tvshowid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['tvshowdetails'])
 
-    return results
+    return [_rpc_to_item(result) for result in results]
 
 
 def _get_local_trailer(item):
@@ -153,9 +182,31 @@ def _get_imdb_trailer(item):
     item.path = plugin.url_for(imdb, video_id=imdb_id)
 
 
+@plugin.route('/redirect')
+def redirect(url, **kwargs):
+    parsed = urlparse(url)
+    if parsed.path.lower() in ('/search', '/kodion/search/query'):
+        log.warning("SlyGuy Trailers does not support Youtube search ({}). Returning empty result".format(url))
+        return plugin.Folder(no_items_label=None, show_news=False)
+
+    matches = _find_content_from_trailer(url)
+    # TODO: how to handle multiple items with same trailer url?
+    if len(matches) != 1:
+        video_id = get_youtube_id(url)
+        return plugin.url_for(play_yt, video_id=video_id)
+
+    return _process_item(matches[0])
+
+
 @plugin.route(ROUTE_CONTEXT)
 def context_trailer(listitem, **kwargs):
     item = _li_to_item(listitem)
+    return _process_item(item)
+
+
+def _process_item(item, notify=True):
+    if settings.IGNORE_SCRAPED.value:
+        item.info['trailer'] == ''
 
     _get_local_trailer(item)
     if item.path:
@@ -181,7 +232,8 @@ def context_trailer(listitem, **kwargs):
             )
 
     if not item.path:
-        gui.notification(_.TRAILER_NOT_FOUND)
+        if notify:
+            gui.notification(_.TRAILER_NOT_FOUND)
         return
 
     parsed = urlparse(item.path)
@@ -266,14 +318,6 @@ def play_yt(video_id, **kwargs):
 def imdb(video_id, **kwargs):
     with gui.busy():
         return play_imdb(video_id)
-
-
-# stub out search so tmdbhelper works
-@plugin.route('/search')
-@plugin.route('/kodion/search/query')
-def search(**kwargs):
-    log.warning("SlyGuy Trailers does not support Youtube search ({}). Returning empty result".format(kwargs['_url']))
-    return plugin.Folder(no_items_label=None, show_news=False)
 
 
 @plugin.route('/test_streams')
