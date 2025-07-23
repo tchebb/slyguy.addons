@@ -5,7 +5,7 @@ trailer_addon_id = 'slyguy.trailers'
 addon_id = xbmcaddon.Addon().getAddonInfo('id')
 
 url = sys.argv[0] + sys.argv[2]
-new_url = url.replace(addon_id, trailer_addon_id)
+new_url = 'plugin://slyguy.trailers/redirect/?url=' + url
 xbmc.log("{} - Re-routing {} -> {}".format(addon_id, url, new_url))
 
 li = xbmcgui.ListItem(path=new_url)
