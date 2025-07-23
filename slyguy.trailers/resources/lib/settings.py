@@ -54,10 +54,10 @@ class Settings(CommonSettings):
     TRAILER_CONTEXT_MENU = Bool('trailer_context_menu', _.TRAILER_CONTEXT_MENU, default=True, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
     TRAILER_LOCAL = Bool('trailer_local', _.TRAILER_LOCAL, default=False, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
     IGNORE_SCRAPED = Bool('ignore_scraped', _.IGNORE_SCRAPED, default=False)
+    MDBLIST_SEARCH = Bool('mdblist_search', _.MDBLIST_SEARCH, default=True, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
     TRAILER_IMDB = Bool('trailer_imdb', _.TRAILER_IMDB, default=False, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
     TRAILER_IMDB_TV = Bool('trailer_imdb_tv', _.TRAILER_IMDB_TV, default=False, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context, parent=TRAILER_IMDB)
     MDBLIST = Bool('mdblist', _.MDBLIST, default=True, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
-    MDBLIST_SEARCH = Bool('mdblist_search', _.MDBLIST_SEARCH, default=True, after_save=lambda val:set_trailer_context(), after_clear=set_trailer_context)
 
     YT_PLAY_WITH = Enum('yt_play_with', _.YT_PLAY_WITH, options=YT_OPTIONS, default=YT_OPTIONS[0][1])
 
