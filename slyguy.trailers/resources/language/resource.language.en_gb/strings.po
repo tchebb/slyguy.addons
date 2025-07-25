@@ -106,3 +106,15 @@ msgstr ""
 msgctxt "#30029"
 msgid "Ignore scraped trailer"
 msgstr ""
+
+msgctxt "#30030"
+msgid "Enable trailer reverse lookup for Movies"
+msgstr ""
+
+msgctxt "#30031"
+msgid "Enable trailer reverse lookup for TV Shows"
+msgstr ""
+
+msgctxt "#30032"
+msgid "Requires Kodi 22 (Piers) or newer"
+msgstr ""

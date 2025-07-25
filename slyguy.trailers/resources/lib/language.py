@@ -27,6 +27,8 @@ class Language(BaseLanguage):
     TRAILER_IMDB_TV             = 30027
     FAILED_SEARCH               = 30028
     IGNORE_SCRAPED              = 30029
-
+    REVERSE_LOOKUP_MOVIE        = 30030
+    REVERSE_LOOKUP_TVSHOW       = 30031
+    REVERSE_LOOKUP_TVSHOW_KODI22 = 30032
 
 _ = Language()

@@ -1,6 +1,6 @@
 from slyguy import plugin
 from slyguy.util import set_kodi_string
-from slyguy.constants import IS_ANDROID, IS_PYTHON3
+from slyguy.constants import IS_ANDROID, IS_PYTHON3, KODI_VERSION
 from slyguy.settings import CommonSettings
 from slyguy.settings.types import Bool, Browse, Text, Enum, Action
 
@@ -67,6 +67,8 @@ class Settings(CommonSettings):
     YT_PLAY_FALLBACK = Enum('yt_play_fallback', _.YT_PLAY_FALLBACK, options=[x for x in YT_OPTIONS if x[1] != YTMode.YT_DLP], visible=lambda: settings.YT_PLAY_WITH.value == YTMode.YT_DLP, parent=YT_PLAY_WITH)
     YT_APK_ID = Text('yt_apk_id', _.YT_NATIVE_APK_ID, default_label=_.AUTO, visible=lambda: settings.YT_PLAY_WITH.value == YTMode.APK or settings.YT_PLAY_FALLBACK.value == YTMode.APK, parent=YT_PLAY_WITH)
 
+    REVERSE_LOOKUP_MOVIE = Bool('reverse_lookup_movie', _.REVERSE_LOOKUP_MOVIE, default=True)
+    REVERSE_LOOKUP_TVSHOW = Bool('reverse_lookup_tvshow', _.REVERSE_LOOKUP_TVSHOW, default=True, enable=KODI_VERSION >= 22, disabled_value=False, disabled_reason=_.REVERSE_LOOKUP_TVSHOW_KODI22)
     TESTSTREAMS = Action("Container.Update({})".format(plugin.url_for('/test_streams')), _.TEST_STREAMS)
 
 

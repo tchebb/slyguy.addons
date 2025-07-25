@@ -30,7 +30,7 @@ def _get_trailer_path(path):
 
     video_id = get_youtube_id(path)
     if video_id:
-        return plugin.url_for(play_yt, video_id=video_id)
+        return plugin.url_for(play_yt, video_id=video_id, busy=0)
     else:
         return path
 
@@ -128,19 +128,24 @@ def redirect(url, **kwargs):
         log.warning("SlyGuy Trailers does not support Youtube search ({}). Returning empty result".format(url))
         return plugin.Folder(no_items_label=None, show_news=False)
 
-    matches = _find_content_from_trailer(url)
+    matches = _reverse_lookup_trailer(url)
     # TODO: how to handle multiple items with same trailer url?
     if len(matches) != 1:
         video_id = get_youtube_id(url)
-        return plugin.url_for(play_yt, video_id=video_id)
+        return play_youtube(video_id=video_id)
 
-    return _process_item(matches[0])
+    item = _process_item(matches[0])
+    if ADDON_ID in item.path:
+        return plugin.redirect(item.path)
+    else:
+        return item
 
 
 @plugin.route(ROUTE_CONTEXT)
 def context_trailer(listitem, **kwargs):
-    item = _li_to_item(listitem)
-    return _process_item(item)
+    with gui.busy():
+        item = _li_to_item(listitem)
+        return _process_item(item)
 
 
 def _require_addon(url):
@@ -197,21 +202,24 @@ def _process_item(item):
             return item
 
     gui.notification(_.TRAILER_NOT_FOUND)
+    item.path = ''
+    return item
 
 
-def _find_content_from_trailer(trailer):
-    trailer = trailer.lower()
-    if not trailer:
-        return []
-
+def _reverse_lookup_trailer(trailer):
     results = []
-    rows = kodi_rpc('VideoLibrary.GetMovies', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['movies']
-    for row in rows:
-        if trailer in row["trailer"].lower():
-            results.append(kodi_rpc('VideoLibrary.GetMovieDetails', {'movieid': row['movieid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['moviedetails'])
+    trailer = trailer.lower()
 
-    if not results and KODI_VERSION >= 22:
-        # Kodi 22 supports show trailer filter: https://github.com/xbmc/xbmc/pull/26719
+    if not trailer:
+        return results
+
+    if settings.REVERSE_LOOKUP_MOVIE.value:
+        rows = kodi_rpc('VideoLibrary.GetMovies', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['movies']
+        for row in rows:
+            if trailer in row["trailer"].lower():
+                results.append(kodi_rpc('VideoLibrary.GetMovieDetails', {'movieid': row['movieid'], 'properties': ['title', 'year', 'imdbnumber', 'uniqueid', 'file', 'trailer']})['moviedetails'])
+
+    if not results and settings.REVERSE_LOOKUP_TVSHOW.value:
         rows = kodi_rpc('VideoLibrary.GetTvShows', {'filter': {'field': 'hastrailer', 'operator': 'true', 'value': '1'}, 'properties': ['trailer']})['tvshows']
         for row in rows:
             if trailer in row["trailer"].lower():
@@ -258,7 +266,7 @@ def _get_imdb_trailer(mediatype, id, id_type=None):
     else:
         imdb_id = id
 
-    return plugin.url_for(imdb, video_id=imdb_id)
+    return plugin.url_for(imdb, video_id=imdb_id, busy=0)
 
 
 def _search_mdblist_for_id(mediatype, title, year):
@@ -312,7 +320,8 @@ def by_unique_id(mediatype, id, id_type=None, **kwargs):
         'clean_title': '',
         'unique_id': {'type': id_type, 'id': id},
     }
-    return _process_item(item)
+    with gui.busy():
+        return _process_item(item)
 
 
 @plugin.route('/by_title_year')
@@ -329,18 +338,19 @@ def by_title_year(mediatype, title, year, **kwargs):
         'clean_title': title,
         'unique_id': {},
     }
-    return _process_item(item)
+    with gui.busy():
+        return _process_item(item)
 
 
 @plugin.route('/play')
-def play_yt(video_id, **kwargs):
-    with gui.busy():
+def play_yt(video_id, busy=1, **kwargs):
+    with gui.busy(busy):
         return play_youtube(video_id)
 
 
 @plugin.route('/imdb')
-def imdb(video_id, **kwargs):
-    with gui.busy():
+def imdb(video_id, busy=1, **kwargs):
+    with gui.busy(busy):
         return play_imdb(video_id)
 
 
